@@ -175,6 +175,12 @@
   .written-detail { padding: 1rem; background: var(--inset); border-radius: 12px; margin: .75rem 0; }
   #written-tools .actions a { min-height: 44px; display: inline-flex; align-items: center; padding: .5rem; }
   #written-status { min-height: 1.5em; }
+  #desktop-ai-panel { margin-bottom: 1.2rem; }
+  #desktop-ai-panel .actions { align-items: center; }
+  #desktop-ai-panel .field-label { margin: 0; }
+  #desktop-ai-provider { width: auto; min-width: 9rem; }
+  #desktop-ai-status { margin: .6rem 0; }
+  #desktop-ai-log { max-height: 10rem; }
   #file-name, #preview-subject, #preview-history, #preview-sources, #delete-description { overflow-wrap: anywhere; }
   #pack-preview { border-color: var(--correct); }
   .subject-card { overflow-wrap: anywhere; background: var(--surface); }
@@ -277,6 +283,22 @@
     <button type="button" id="dismiss-notice" class="link-button">表示を閉じる</button>
   </div>
 
+  <aside id="desktop-ai-panel" class="panel" hidden aria-label="記述の採点設定">
+    <div class="actions">
+      <label class="field-label" for="desktop-ai-provider">採点AI</label>
+      <select id="desktop-ai-provider" class="manual-input"><option value="codex">Codex</option><option value="claude">Claude</option></select>
+      <button type="button" id="desktop-ai-refresh">状態を更新</button>
+    </div>
+    <p id="desktop-ai-status" role="status" aria-live="polite">状態を確認中…</p>
+    <div class="actions">
+      <button type="button" id="desktop-ai-install" hidden>インストール</button>
+      <button type="button" id="desktop-ai-login" hidden>ログイン</button>
+      <button type="button" id="desktop-ai-cancel" hidden>取り消す</button>
+    </div>
+    <details><summary>実行状況</summary><pre id="desktop-ai-log"></pre></details>
+    <p class="muted">各自のAIアカウント・利用枠を使います。</p>
+  </aside>
+
   <section id="screen-tutorial" hidden>
     <div class="tutorial-head">
       <h2>使い方</h2>
@@ -342,6 +364,7 @@
       <button type="button" id="manager-back">学習に戻る</button>
     </div>
     <p>ファイルから追加、または自分で問題を作成できます。</p>
+    <p id="browser-format-note" class="muted">ブラウザ版は選択・正誤問題に対応。記述問題はPC専用アプリで使えます。</p>
     <button type="button" id="open-pack-help" class="link-button">AI用の指示文</button>
     <details class="panel" id="manual-create"><summary>自分で問題を作る</summary><div id="manual-editor"></div></details>
     <div class="panel">
@@ -367,9 +390,8 @@ B. dog
 正解：B
 解説：犬はdog、猫はcatです。
 出典：動作確認用サンプル
-出典箇所：問2
-
-問3：1 + 1 が2になることを、物を数える例で説明してください。
+出典箇所：問2</pre>
+        <pre id="text-template-written" hidden>問3：1 + 1 が2になることを、物を数える例で説明してください。
 問題形式：記述
 模範解答：りんご1個にもう1個を加えると、全部で2個になる。
 解説：同じ種類の物を1個ずつ合わせ、合計が2個になる例を示す。
@@ -436,7 +458,9 @@ B. dog
       <label class="field-label" for="written-response">あなたの解答</label>
       <textarea id="written-response" rows="6" maxlength="10000"></textarea>
       <p id="written-status" class="muted" role="status" aria-live="polite"></p>
-      <div id="written-transfer">
+      <div class="actions"><button type="button" id="grade-written" class="primary">AIで採点</button></div>
+      <p class="muted">80点以上を正解として記録します。</p>
+      <div id="written-transfer" hidden>
         <div class="actions">
           <button type="button" id="copy-written" class="primary">採点用にコピー</button>
           <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT</a>
@@ -475,7 +499,7 @@ B. dog
     <p><button type="button" id="restart">科目・出題数を選ぶ</button></p>
   </section>
   <footer class="delivery-note">
-    <p class="muted">問題・履歴はこのブラウザに保存されます。</p>
+    <p id="storage-location" class="muted">問題・履歴はこのブラウザに保存されます。</p>
     <details><summary>インストール・共有</summary><p>友人とは問題のJSONファイルを共有できます。</p><p class="muted">iPhoneはSafariの共有から「ホーム画面に追加」で、アプリとして開けます。</p></details>
     <p id="offline-status" class="muted" role="status"></p>
   </footer>
@@ -492,10 +516,10 @@ B. dog
 <script src="vendor/fflate-0.8.2.js"></script>
 <script src="document-reader.js?v=20261006-import"></script>
 <script src="question-import.js?v=20261006-written"></script>
-<script src="question-editor.js?v=20261006-written"></script>
-<script src="subject-manager.js?v=20261006-written"></script>
+<script src="question-editor.js?v=20261006-desktop"></script>
+<script src="subject-manager.js?v=20261006-desktop"></script>
 <script src="written-practice.js?v=20261006-written"></script>
-<script src="app.js?v=20261006-written"></script>
+<script src="app.js?v=20261006-desktop"></script>
 <script src="install-support.js"></script>
 </body>
 </html>

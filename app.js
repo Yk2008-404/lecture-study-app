@@ -7,10 +7,150 @@
  */
 
 const SESSION_SIZES = [10, 16, 24, 32, 40];
+const desktopBridge = window.studyDesktop || null;
+const AI_PROVIDER_KEY = 'study-app.ai-provider.v1';
+let desktopProvider = 'codex';
+let desktopStatus = { providers: [], busy: false };
+let desktopOperation = null;
+let desktopRun = 0;
+let desktopInitialized = false;
+let desktopLog = [];
 let availableQuestions = QUESTIONS.slice();
 let currentScreen = 'start';
 let quizBusy = false;
 let subjectBusy = false;
+
+function canAskQuestion(question) {
+  return QuestionPacks.supported(question) && (question.questionType !== '記述' || !!desktopBridge);
+}
+
+function selectedProviderStatus() {
+  return desktopStatus.providers.find(provider => provider.id === desktopProvider);
+}
+function providerName() { return desktopProvider === 'claude' ? 'Claude' : 'Codex'; }
+function desktopMessage(message) {
+  const status = document.getElementById('desktop-ai-status');
+  if (status) status.textContent = String(message || '').slice(0, 500);
+}
+function updateDesktopControls() {
+  const panel = document.getElementById('desktop-ai-panel');
+  const written = state.questions[state.index]?.questionType === '記述';
+  if (panel) panel.hidden = !desktopBridge || !(currentScreen === 'start' || (currentScreen === 'quiz' && written));
+  if (!desktopBridge) return;
+  const provider = selectedProviderStatus();
+  const operating = !!desktopOperation || desktopStatus.busy;
+  const scoring = ['grade', 'saving', 'cancel'].includes(desktopOperation);
+  const select = document.getElementById('desktop-ai-provider');
+  if (select) { select.value = desktopProvider; select.disabled = operating; }
+  const install = document.getElementById('desktop-ai-install');
+  const login = document.getElementById('desktop-ai-login');
+  const refresh = document.getElementById('desktop-ai-refresh');
+  const cancel = document.getElementById('desktop-ai-cancel');
+  if (install) { install.hidden = !!provider?.installed; install.disabled = operating || !provider; }
+  if (login) { login.hidden = !provider?.installed || !!provider?.loggedIn; login.disabled = operating; }
+  if (refresh) refresh.disabled = !!desktopOperation;
+  if (cancel) { cancel.hidden = !operating || desktopOperation === 'saving'; cancel.disabled = desktopOperation === 'cancel'; }
+  const grade = document.getElementById('grade-written');
+  const savedResult = !!document.getElementById('written-grade')?.value.trim();
+  if (grade) {
+    grade.hidden = state.answered;
+    grade.disabled = operating || quizBusy || state.answered || (!savedResult && !(provider?.installed && provider?.loggedIn));
+    grade.textContent = savedResult ? '採点結果を保存' : 'AIで採点';
+  }
+  const response = document.getElementById('written-response');
+  if (response && written) response.readOnly = state.answered || scoring;
+  const finish = document.getElementById('finish-session');
+  if (finish) finish.disabled = scoring;
+}
+function describeDesktopStatus() {
+  const provider = selectedProviderStatus();
+  if (!provider) { desktopMessage('状態を確認してください。'); return; }
+  const summary = !provider.installed ? 'インストールしてください。' : !provider.loggedIn ? 'ログインしてください。' : '準備完了';
+  desktopMessage(`${providerName()}：${summary}`);
+}
+async function refreshDesktopStatus() {
+  if (!desktopBridge) return;
+  const status = await desktopBridge.getStatus();
+  desktopStatus = {
+    providers: Array.isArray(status?.providers) ? status.providers.filter(provider => ['codex', 'claude'].includes(provider.id)) : [],
+    busy: !!status?.busy,
+  };
+  describeDesktopStatus();
+  updateDesktopControls();
+}
+async function initializeDesktopAI() {
+  if (!desktopBridge || desktopInitialized) return;
+  desktopInitialized = true;
+  try {
+    const saved = window.localStorage.getItem(AI_PROVIDER_KEY);
+    if (saved === 'codex' || saved === 'claude') desktopProvider = saved;
+  } catch (_) { /* Provider selection remains usable without preference storage. */ }
+  const location = document.getElementById('storage-location');
+  if (location) location.textContent = '問題・履歴はこのPCに保存されます。';
+  const browserNote = document.getElementById('browser-format-note');
+  if (browserNote) browserNote.hidden = true;
+  if (typeof desktopBridge.onProgress === 'function') desktopBridge.onProgress(event => {
+    if (event?.provider && event.provider !== desktopProvider) return;
+    const message = String(event?.message || '').slice(0, 4000);
+    if (!message) return;
+    desktopLog.push(message);
+    desktopLog = desktopLog.slice(-12);
+    const log = document.getElementById('desktop-ai-log');
+    if (log) log.textContent = desktopLog.join('\n').slice(-4000);
+    if (desktopOperation) desktopMessage(message);
+  });
+  desktopMessage('状態を確認中…');
+  updateDesktopControls();
+  try { await refreshDesktopStatus(); }
+  catch (error) { desktopMessage(error.message || '状態を確認できません。'); }
+}
+function changeDesktopProvider() {
+  if (!desktopBridge || desktopOperation || desktopStatus.busy) { updateDesktopControls(); return; }
+  const value = document.getElementById('desktop-ai-provider').value;
+  if (!['codex', 'claude'].includes(value)) return;
+  desktopProvider = value;
+  try { window.localStorage.setItem(AI_PROVIDER_KEY, value); } catch (_) { /* Keep the page selection. */ }
+  desktopLog = [];
+  const log = document.getElementById('desktop-ai-log');
+  if (log) log.textContent = '';
+  describeDesktopStatus(); updateDesktopControls();
+}
+async function setupDesktopProvider(action) {
+  if (!desktopBridge || desktopOperation || desktopStatus.busy) return;
+  const run = ++desktopRun;
+  desktopOperation = action;
+  updateDesktopControls();
+  desktopMessage(action === 'install' ? 'インストール中…' : 'ログインを開いています…');
+  try {
+    const result = await desktopBridge[action](desktopProvider);
+    if (run !== desktopRun) return;
+    if (action === 'install' && Array.isArray(result?.providers)) desktopStatus = result;
+    else await refreshDesktopStatus();
+    if (action === 'login' && result?.started) desktopMessage('ログイン後に「状態を更新」を押してください。');
+    else describeDesktopStatus();
+  } catch (error) {
+    if (run === desktopRun) desktopMessage(error.message || '処理できませんでした。');
+  } finally {
+    if (run === desktopRun) { desktopOperation = null; updateDesktopControls(); }
+  }
+}
+async function cancelDesktopOperation() {
+  if (!desktopBridge || desktopOperation === 'cancel' || desktopOperation === 'saving' || (!desktopOperation && !desktopStatus.busy)) return;
+  const wasGrading = desktopOperation === 'grade';
+  const run = ++desktopRun;
+  let cancelled = false;
+  desktopOperation = 'cancel'; updateDesktopControls();
+  try { await desktopBridge.cancel(); cancelled = true; desktopMessage('取り消しました。'); }
+  catch (error) { desktopMessage(error.message || '取り消せませんでした。'); }
+  finally {
+    if (run === desktopRun) {
+      desktopOperation = null;
+      desktopStatus.busy = !cancelled;
+      if (wasGrading) quizBusy = false;
+      updateDesktopControls();
+    }
+  }
+}
 
 function notify(message, isError = false, retry = null) {
   const box = document.getElementById('app-notice');
@@ -76,6 +216,7 @@ function showScreen(name) {
   screens[name].setAttribute('tabindex', '-1');
   screens[name].focus({ preventScroll: true });
   window.scrollTo(0, 0);
+  updateDesktopControls();
 }
 
 async function startSession(count) {
@@ -85,18 +226,18 @@ async function startSession(count) {
     await refreshQuestions();
     const progressAll = await Storage.getAllProgress();
     state.questions = Scheduler.selectQuestions(
-      availableQuestions.filter(QuestionPacks.supported), progressAll, count, new Date(), state.subjects
+      availableQuestions.filter(canAskQuestion), progressAll, count, new Date(), state.subjects
     );
     state.index = 0;
     state.results = [];
     state.answered = false;
     if (state.questions.length === 0) {
-      notify(availableQuestions.length ? '現在出題できる問題がない。想起形式はまだ出題に対応していない。' : '科目を追加すると学習を始められる。');
+      notify(availableQuestions.length ? '出題できる問題がありません。記述はPC専用アプリで使えます。' : '科目を追加すると学習を始められます。');
       return;
     }
     await renderQuestion();
     showScreen('quiz');
-  } finally { quizBusy = false; }
+  } finally { quizBusy = false; updateDesktopControls(); }
 }
 
 function renderSessionProgress() {
@@ -108,6 +249,7 @@ function renderSessionProgress() {
 
 async function renderQuestion() {
   const question = state.questions[state.index];
+  if (!canAskQuestion(question)) throw new Error('この問題はここでは出題できません。記述はPC専用アプリで使えます。');
   state.answered = false;
 
   // 出題した時点で最終出題日時を更新する。
@@ -187,7 +329,7 @@ async function answer(selected) {
     next.hidden = false;
     next.textContent = state.index === state.questions.length - 1 ? '結果を見る' : '次の問題へ';
     next.focus();
-  } finally { quizBusy = false; }
+  } finally { quizBusy = false; updateDesktopControls(); }
 }
 
 async function loadWrittenDraft(question) {
@@ -201,22 +343,23 @@ async function loadWrittenDraft(question) {
 
 function renderWritten(question, draft) {
   const panel = document.getElementById('written-tools');
-  panel.hidden = question.questionType !== '記述';
+  panel.hidden = !desktopBridge || question.questionType !== '記述';
   if (panel.hidden) return;
   const response = document.getElementById('written-response');
   response.value = draft.response;
   response.readOnly = false;
   document.getElementById('written-grade').value = draft.resultText;
   document.getElementById('written-grade-panel').open = !!draft.resultText;
-  document.getElementById('written-transfer').hidden = false;
+  document.getElementById('written-transfer').hidden = true;
   document.getElementById('written-prompt-panel').hidden = true;
   document.getElementById('written-prompt').value = '';
   document.getElementById('written-evaluation').hidden = true;
   document.getElementById('written-status').textContent = draft.response ? '下書きを復元しました。' : '';
+  updateDesktopControls();
 }
 
 function activeWritten() {
-  if (currentScreen !== 'quiz' || state.answered || quizBusy) return null;
+  if (!desktopBridge || currentScreen !== 'quiz' || state.answered || quizBusy) return null;
   const question = state.questions[state.index];
   return question?.questionType === '記述' ? question : null;
 }
@@ -230,6 +373,50 @@ function saveWrittenDraft() {
   resultInput.value = saved.resultText;
   document.getElementById('written-prompt-panel').hidden = true;
   document.getElementById('written-status').textContent = '下書きを保存しました。';
+  updateDesktopControls();
+}
+
+async function gradeWritten() {
+  const question = activeWritten();
+  if (!question || desktopOperation || desktopStatus.busy) return;
+  const response = document.getElementById('written-response').value;
+  let draft = WrittenPractice.prepare(question, response);
+  let raw = document.getElementById('written-grade').value || draft.resultText;
+  let grade = null;
+  if (raw) {
+    try { grade = WrittenPractice.parseResult(raw, question, draft); }
+    catch (_) { raw = ''; }
+  }
+  const provider = selectedProviderStatus();
+  if (!grade && !(provider?.installed && provider?.loggedIn)) throw new Error(`${providerName()}のインストールとログインを確認してください。`);
+  const run = ++desktopRun;
+  desktopOperation = 'grade'; quizBusy = true;
+  updateDesktopControls();
+  document.getElementById('written-status').textContent = grade ? '採点結果を保存中…' : 'AIで採点中…';
+  try {
+    if (!grade) {
+      const result = await desktopBridge.grade({ provider: desktopProvider, question, response, attemptId: draft.attemptId });
+      if (run !== desktopRun) return;
+      if (currentScreen !== 'quiz' || state.questions[state.index] !== question || state.answered) return;
+      raw = JSON.stringify(result);
+      grade = WrittenPractice.parseResult(raw, question, draft);
+      document.getElementById('written-grade').value = raw;
+    }
+    draft = WrittenPractice.update(question, response, raw);
+    desktopOperation = 'saving'; updateDesktopControls();
+    await commitWrittenGrade(question, response, draft, grade);
+    desktopMessage('採点が終わりました。');
+  } catch (error) {
+    if (run !== desktopRun) return;
+    document.getElementById('written-status').textContent = '採点を完了できませんでした。解答は残っています。';
+    desktopMessage(error.message || '採点できませんでした。');
+    throw error;
+  } finally {
+    if (run === desktopRun) {
+      desktopOperation = null; desktopStatus.busy = false; quizBusy = false;
+      updateDesktopControls();
+    }
+  }
 }
 
 async function copyWritten() {
@@ -269,13 +456,17 @@ function appendWrittenEvaluation(container, question, response, grade, includeRe
 async function applyWrittenGrade() {
   const question = activeWritten();
   if (!question) return;
-  let response = document.getElementById('written-response').value;
+  const response = document.getElementById('written-response').value;
   const raw = document.getElementById('written-grade').value;
   const draft = WrittenPractice.update(question, response, raw);
-  let grade = WrittenPractice.parseResult(raw, question, draft);
-  let isCorrect = grade.score >= 80;
+  const grade = WrittenPractice.parseResult(raw, question, draft);
   quizBusy = true;
-  try {
+  try { await commitWrittenGrade(question, response, draft, grade); }
+  finally { quizBusy = false; updateDesktopControls(); }
+}
+
+async function commitWrittenGrade(question, response, draft, grade) {
+    let isCorrect = grade.score >= 80;
     try { await Storage.recordAnswer(question.id, {
       questionId: question.id, isCorrect, answeredAt: new Date().toISOString(),
       response, grading: grade, attemptId: draft.attemptId,
@@ -312,11 +503,10 @@ async function applyWrittenGrade() {
     next.textContent = state.index === state.questions.length - 1 ? '結果を見る' : '次の問題へ';
     try { WrittenPractice.discard(question, draft); }
     catch (_) { notify('採点結果は保存済みです。下書きの削除だけ失敗しました。', true); }
-  } finally { quizBusy = false; }
 }
 
 async function resumeWritten() {
-  if (quizBusy || subjectBusy) return;
+  if (!desktopBridge || quizBusy || subjectBusy) return;
   quizBusy = true;
   try {
     await refreshQuestions();
@@ -325,7 +515,7 @@ async function resumeWritten() {
     state.questions = pending;
     state.index = 0; state.results = []; state.answered = false;
     await renderQuestion(); showScreen('quiz');
-  } finally { quizBusy = false; }
+  } finally { quizBusy = false; updateDesktopControls(); }
 }
 
 /** 現在の問題の重要度ボタンを描画する。 */
@@ -360,7 +550,7 @@ async function changeImportance(level) {
     document.getElementById('app-notice').hidden = true;
     document.getElementById('retry-action').hidden = true;
     document.getElementById('retry-action').onclick = null;
-  } finally { quizBusy = false; }
+  } finally { quizBusy = false; updateDesktopControls(); }
 }
 
 async function goNext() {
@@ -370,7 +560,7 @@ async function goNext() {
     state.index += 1;
     try { await renderQuestion(); }
     catch (e) { state.index -= 1; state.answered = true; throw e; }
-    finally { quizBusy = false; }
+    finally { quizBusy = false; updateDesktopControls(); }
   } else { renderResult(); }
 }
 
@@ -380,7 +570,7 @@ async function finishSession() {
   if (state.results.length) renderResult();
   else {
     quizBusy = true;
-    try { await renderStart(); } finally { quizBusy = false; }
+    try { await renderStart(); } finally { quizBusy = false; updateDesktopControls(); }
   }
 }
 
@@ -512,7 +702,7 @@ async function toggleSubject(subject, checked) {
     subjectBusy = false;
     renderSubjects();
     document.querySelectorAll('#sizes button').forEach((el) => {
-      el.disabled = !questionsInScope().some(QuestionPacks.supported);
+      el.disabled = !questionsInScope().some(canAskQuestion);
     });
   }
 }
@@ -522,8 +712,9 @@ async function renderStartNote() {
   const progressAll = await Storage.getAllProgress();
   const now = new Date();
   const all = questionsInScope();
-  const scope = all.filter(QuestionPacks.supported);
-  const recall = all.length - scope.length;
+  const scope = all.filter(canAskQuestion);
+  const recall = all.filter(q => !QuestionPacks.supported(q)).length;
+  const desktopOnly = desktopBridge ? 0 : all.filter(q => q.questionType === '記述').length;
   const progress = scope.map((question) => Scheduler.getProgress(progressAll, question));
   const newCount = progress.filter((p) => !p.lastAskedAt).length;
   const dueCount = progress.filter((p) => p.lastAskedAt && Scheduler.isDue(p, now)).length;
@@ -540,6 +731,7 @@ async function renderStartNote() {
 
   document.getElementById('start-note').textContent =
     (scope.length ? `未出題 ${newCount} 問` : '出題できる問題がありません。') +
+    (desktopOnly ? ` 記述 ${desktopOnly} 問はPC専用アプリで出題できます。` : '') +
     (recall ? ` 想起 ${recall} 問は保存のみ（出題未対応）。` : '');
   const list = document.getElementById('sizes');
   list.textContent = '';
@@ -569,7 +761,8 @@ async function renderStart() {
   await renderStartNote();
 
   const resume = document.getElementById('resume-written');
-  if (typeof WrittenPractice !== 'undefined') {
+  resume.hidden = true;
+  if (desktopBridge && typeof WrittenPractice !== 'undefined') {
     const pending = WrittenPractice.pending(availableQuestions, await Storage.getAnswers());
     resume.hidden = pending.length === 0;
     resume.textContent = `記述の続き ${pending.length} 問`;
@@ -594,6 +787,7 @@ async function closeTutorial() {
 async function boot() {
   await Storage.initialize(QUESTIONS, LegacyQuestionIdentities);
   await renderStart();
+  await initializeDesktopAI();
 }
 
 document.getElementById('next').addEventListener('click', safeAction(goNext));
@@ -609,6 +803,12 @@ document.getElementById('written-grade').addEventListener('input', safeAction(sa
 document.getElementById('copy-written').addEventListener('click', safeAction(copyWritten));
 document.getElementById('apply-written').addEventListener('click', safeAction(applyWrittenGrade));
 document.getElementById('resume-written').addEventListener('click', safeAction(resumeWritten));
+document.getElementById('grade-written')?.addEventListener('click', safeAction(gradeWritten));
+document.getElementById('desktop-ai-provider')?.addEventListener('change', changeDesktopProvider);
+document.getElementById('desktop-ai-refresh')?.addEventListener('click', safeAction(refreshDesktopStatus));
+document.getElementById('desktop-ai-install')?.addEventListener('click', () => setupDesktopProvider('install'));
+document.getElementById('desktop-ai-login')?.addEventListener('click', () => setupDesktopProvider('login'));
+document.getElementById('desktop-ai-cancel')?.addEventListener('click', cancelDesktopOperation);
 SubjectManager.initialize({ showScreen, renderStart, refreshQuestions, notify, safeAction, builtIns: QUESTIONS });
 window.addEventListener('storage', safeAction(async (event) => {
   if (!Storage.isStorageKey(event.key)) return;

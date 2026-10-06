@@ -10,6 +10,8 @@ const SubjectManager = (() => {
   let inputOrigin = 'file';
   let draftOrigin = null;
   const $ = (id) => document.getElementById(id);
+  const canAsk = q => QuestionPacks.supported(q) && (q.questionType !== '記述' || !!window.studyDesktop);
+  const playableCount = questions => questions.filter(canAsk).length;
   function element(tag, text, className) {
     const el = document.createElement(tag);
     if (text !== undefined) el.textContent = text;
@@ -51,6 +53,8 @@ const SubjectManager = (() => {
       card.append(element('p', builtSubjects.has(subject) ? `組込 ${baseCount} 問 ＋ 追加 ${extra.length} 問` : `登録問題 / ${extra.length} 問`));
       const recall = extra.filter((q) => !QuestionPacks.supported(q)).length;
       if (recall) card.append(element('p', `想起 ${recall} 問は保存のみ。出題は未対応。`, 'muted'));
+      const written = extra.filter(q => q.questionType === '記述').length;
+      if (written && !window.studyDesktop) card.append(element('p', `記述 ${written} 問は保存済み。出題はPC専用アプリで。`, 'muted'));
       const scope = element('p', `書き出し対象：登録問題 ${extra.length} 問。学習履歴は含まれない。` + (baseCount ? '組込問題は含まれない。' : ''), 'export-scope');
       card.append(scope);
       if (!extra.length) card.append(element('p', '追加分が0問のため書き出せない。組込科目は削除できない。', 'muted'));
@@ -109,13 +113,15 @@ const SubjectManager = (() => {
       draftOrigin = inputOrigin;
       const warnings = $('import-warnings');
       if (warnings) {
-        warnings.replaceChildren(...parsed.warnings.map(message => element('li', message)));
-        warnings.hidden = !parsed.warnings.length;
+        const messages = parsed.warnings.slice();
+        if (!window.studyDesktop && result.summary.written) messages.push(`記述 ${result.summary.written} 問も保存します。出題はPC専用アプリで利用できます。`);
+        warnings.replaceChildren(...messages.map(message => element('li', message)));
+        warnings.hidden = !messages.length;
       }
       const s = result.summary;
       const exists = app.builtIns.concat(imported).some((q) => q.subject === draft.subject);
       $('preview-subject').textContent = `${draft.subject} / ${exists ? '既存科目への追加' : '新規科目'}`;
-      $('preview-counts').textContent = `全 ${s.total} 問 / 選択肢 ${s.choice}・正誤 ${s.trueFalse}・記述 ${s.written || 0}・想起（未対応）${s.recall} / 出題可能 ${s.playable} 問`;
+      $('preview-counts').textContent = `全 ${s.total} 問 / 選択肢 ${s.choice}・正誤 ${s.trueFalse}・記述${window.studyDesktop ? '' : '（PC専用）'} ${s.written || 0}・想起（未対応）${s.recall} / 出題可能 ${playableCount(draft.questions)} 問`;
       $('preview-history').textContent = `旧学習履歴の継承対象：${result.reusedLegacyIds.length} 問。` +
         (result.restartedLegacyIds.length ? `形式変更により旧履歴を参照しない問題：${result.restartedLegacyIds.length} 問（${result.restartedLegacyIds.join('、')}）。旧データは削除しない。登録後の学習記録がなければ未学習から開始する。` : '') +
         '登録後に保存した学習記録は保持する。';
@@ -162,7 +168,7 @@ const SubjectManager = (() => {
     inputOrigin = 'file';
     invalidate();
     if (wasManual && typeof QuestionEditor !== 'undefined') QuestionEditor.reset();
-    app.notify(`${subject}を ${result.summary.total} 問追加した（出題可能 ${result.summary.playable} 問）。` + (result.reusedLegacyIds.length ? `旧履歴 ${result.reusedLegacyIds.length} 問分を引き継いだ。` : '') + (result.restartedLegacyIds.length ? `形式変更 ${result.restartedLegacyIds.length} 問は旧履歴を参照しない。旧データは保持した。` : ''));
+    app.notify(`${subject}を ${result.summary.total} 問追加した（出題可能 ${playableCount(result.pack.questions)} 問）。` + (result.reusedLegacyIds.length ? `旧履歴 ${result.reusedLegacyIds.length} 問分を引き継いだ。` : '') + (result.restartedLegacyIds.length ? `形式変更 ${result.restartedLegacyIds.length} 問は旧履歴を参照しない。旧データは保持した。` : ''));
     await app.refreshQuestions();
     await refresh();
     $('manager-back').focus();
@@ -237,7 +243,7 @@ const SubjectManager = (() => {
       '\n\n【使用済み問題ID：新規問題に再利用しない】\n' + all.map((q) => q.id).join(', ');
     $('pack-format').textContent = PackHelp.format;
     $('pack-sample').textContent = JSON.stringify(PackHelp.sample, null, 2);
-    $('creation-prompt').value = PackHelp.prompt + context;
+    $('creation-prompt').value = PackHelp.prompt + (window.studyDesktop ? '' : '\n\n今回はブラウザ版で使うため、選択肢・正誤問題だけを作成してください。記述問題は含めません。') + context;
     $('full-question-rules').textContent = PackHelp.rules;
     $('source-errata-text').textContent = PackHelp.errata;
     $('review-decisions-text').textContent = PackHelp.decisions;
@@ -257,6 +263,12 @@ const SubjectManager = (() => {
   }
   function initialize(api) {
     app = api;
+    const template = $('text-template');
+    const writtenTemplate = $('text-template-written');
+    if (window.studyDesktop && template && writtenTemplate && !template.dataset.writtenIncluded) {
+      template.textContent += '\n\n' + writtenTemplate.textContent;
+      template.dataset.writtenIncluded = 'true';
+    }
     const on = (id, action, event = 'click') => $(id).addEventListener(event, app.safeAction(action));
     on('open-manager', open);
     on('empty-add-subject', open);

@@ -10,6 +10,7 @@ const QuestionEditor = (() => {
   let nextNumber = 1;
   let busy = false;
   let generation = 0;
+  const allowWritten = !!window.studyDesktop;
 
   function element(tag, text, className) {
     const node = document.createElement(tag);
@@ -45,7 +46,7 @@ const QuestionEditor = (() => {
     container.querySelectorAll('input, textarea, select, button').forEach(node => { node.disabled = value; });
     fields.preview.disabled = value || !questions.length;
   }
-  function isWritten() { return fields.type.value === '記述'; }
+  function isWritten() { return allowWritten && fields.type.value === '記述'; }
   function updateType() {
     const written = isWritten();
     fields.choicesGroup.hidden = written;
@@ -116,6 +117,7 @@ const QuestionEditor = (() => {
   }
   function addQuestion() {
     if (busy) return;
+    if (!allowWritten && fields.type.value === '記述') { error('記述問題はPC専用アプリで作成できます。', fields.type); return; }
     const subject = fields.subject.value.trim();
     if (!subject) { error('科目名を入力してください。', fields.subject); return; }
     const text = fields.text.value.trim();
@@ -226,7 +228,7 @@ const QuestionEditor = (() => {
     typeLabel.htmlFor = 'manual-type';
     fields.type = element('select', undefined, 'manual-input');
     fields.type.id = 'manual-type';
-    ['選択肢', '記述'].forEach(value => {
+    (allowWritten ? ['選択肢', '記述'] : ['選択肢']).forEach(value => {
       const option = element('option', value); option.value = value; fields.type.append(option);
     });
     fields.type.value = '選択肢';
@@ -237,6 +239,7 @@ const QuestionEditor = (() => {
       changed();
     });
     typeGroup.append(typeLabel, fields.type);
+    typeGroup.hidden = !allowWritten;
     form.append(typeGroup);
     fields.text = inputField(form, 'text', '問題文', true);
     const optionsGroup = element('fieldset', undefined, 'manual-choices');
