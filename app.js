@@ -72,6 +72,7 @@ function showScreen(name) {
   Object.keys(screens).forEach((key) => {
     screens[key].hidden = key !== name;
   });
+  document.getElementById('show-tutorial').hidden = name !== 'start';
   screens[name].setAttribute('tabindex', '-1');
   screens[name].focus({ preventScroll: true });
   window.scrollTo(0, 0);
@@ -285,9 +286,8 @@ function renderResult() {
   document.getElementById('score').textContent =
     `${total} 問中 ${correct.length} 問正解`;
   document.getElementById('result-note').textContent =
-    `回答 ${total} 問の履歴を保存しました。` +
-    (total < state.questions.length ? `未回答 ${state.questions.length - total} 問は採点していません。` : '') +
-    '次の学習では、復習時期を迎えた問題を優先します。';
+    `${total} 問の回答を保存しました。` +
+    (total < state.questions.length ? `未回答 ${state.questions.length - total} 問は採点していません。` : '');
 
   const wrongHeading = document.getElementById('wrong-heading');
   const wrongList = document.getElementById('wrong-list');
@@ -392,9 +392,8 @@ async function renderStartNote() {
   });
 
   document.getElementById('start-note').textContent =
-    `出題可能 ${scope.length} 問 / 未出題 ${newCount} 問 / 復習時期 ${dueCount} 問` +
-    (scope.length ? '。出題数を選ぶと開始します。復習を優先し、不足分は期限が近い問題で補います。' : '。科目を追加するか、出題可能な科目を選んでください。') +
-    (recall ? ` 想起 ${recall} 問は保存のみで、出題には未対応です。` : '');
+    (scope.length ? `未出題 ${newCount} 問` : '出題できる問題がありません。') +
+    (recall ? ` 想起 ${recall} 問は保存のみ（出題未対応）。` : '');
   const list = document.getElementById('sizes');
   list.textContent = '';
   const sizes = scope.length ? [...new Set(SESSION_SIZES.map((n) => Math.min(n, scope.length)))] : SESSION_SIZES;

@@ -6,39 +6,39 @@
     if (element) element.textContent = message;
   };
   if (location.protocol === 'file:') {
-    status('このファイルで学習できます。問題と学習履歴は、このブラウザに保存されます。');
+    status('ファイル版');
     return;
   }
   if (!['http:', 'https:'].includes(location.protocol) || !window.isSecureContext || !('serviceWorker' in navigator)) {
-    status('問題と学習履歴は、このブラウザに保存されます。');
+    status('');
     return;
   }
 
   const watch = (registration) => {
-    if (registration.active) status('オフラインでも開けます。問題と学習履歴は、このブラウザに保存されます。');
-    if (registration.waiting) status('アプリの更新を準備しました。学習後にすべての画面を閉じて、開き直すと更新されます。');
+    if (registration.active) status('オフライン対応');
+    if (registration.waiting) status('更新があります。学習後、アプリの画面をすべて閉じて開き直してください。');
     const worker = registration.installing;
     if (!worker) return;
     const changed = () => {
       if (worker.state === 'installed') {
         status(registration.active
-          ? 'アプリの更新を準備しました。学習後にすべての画面を閉じて、開き直すと更新されます。'
-          : 'オフラインの準備ができました。次回から通信がなくても開けます。');
+          ? '更新があります。学習後、アプリの画面をすべて閉じて開き直してください。'
+          : 'オフライン対応');
       } else if (worker.state === 'redundant' && !registration.active) {
-        status('オフラインの準備ができませんでした。通信があるときに、もう一度開いてください。');
+        status('オフライン準備に失敗しました。通信時に開き直してください。');
       }
     };
     worker.addEventListener('statechange', changed);
     changed();
   };
   const register = async () => {
-    status('オフラインで使うための準備をしています。');
+    status('オフライン準備中…');
     try {
       const registration = await navigator.serviceWorker.register('./service-worker.js', { scope: './', updateViaCache: 'none' });
       watch(registration);
       registration.addEventListener('updatefound', () => watch(registration));
     } catch (_) {
-      status('オフラインの準備ができませんでした。通信があるときは、このまま学習できます。');
+      status('オフライン準備に失敗しました。オンラインでは利用できます。');
     }
   };
   if (document.readyState === 'complete') register();

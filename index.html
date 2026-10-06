@@ -15,7 +15,7 @@
     --surface: #ffffff; --inset: #f7f8fc; --accent: #5253d9; --accent-hover: #4142bb;
     --accent-soft: #eeedff; --correct: #197653; --correct-soft: #eaf7f0;
     --incorrect: #bd3c53; --incorrect-soft: #fff0f2; --on-accent: #ffffff;
-    --shadow: 0 8px 32px -20px #30375c35; --hero-paper: #fff;
+    --shadow: 0 8px 32px -20px #30375c35;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -23,7 +23,7 @@
       --surface: #202335; --inset: #191c2c; --accent: #a5a2ff; --accent-hover: #bfbdff;
       --accent-soft: #302f50; --correct: #80ddb1; --correct-soft: #203f36;
       --incorrect: #ff99aa; --incorrect-soft: #432834; --on-accent: #1b193b;
-      --shadow: 0 8px 32px -16px #0005; --hero-paper: #2a2e43;
+      --shadow: 0 8px 32px -16px #0005;
     }
   }
   * { box-sizing: border-box; }
@@ -44,27 +44,18 @@
   .link-button { background: transparent; color: var(--muted); border-color: transparent; padding: .55rem .5rem; text-decoration: none; }
   .link-button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
   .muted { color: var(--muted); font-size: .84rem; }
-  .eyebrow { display: block; color: var(--accent); font-size: .65rem; font-weight: 750; letter-spacing: .19em; line-height: 1.4; }
   .app-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1120px; margin: 0 auto; padding: 1.6rem 0; border-bottom: 1px solid var(--border); }
   .brand { display: flex; align-items: center; gap: .85rem; min-width: 0; }
   .brand-mark { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; color: #fff; background: #5253d9; border-radius: 14px; box-shadow: 0 5px 15px -9px #5253d9; }
+  #show-tutorial { font-size: .82rem; padding: .5rem .85rem; }
   .brand h1 { font-size: 1.08rem; letter-spacing: .06em; margin: 0; line-height: 1.4; }
-  .brand-caption { display: block; margin-top: .2rem; font-size: .58rem; letter-spacing: .15em; color: var(--muted); }
-  .header-note { display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--muted); }
-  .header-note::before { content: ''; width: 6px; height: 6px; background: var(--correct); border-radius: 50%; }
-  .page-shell { max-width: 1184px; margin: 0 auto; padding: 0 32px calc(2rem + env(safe-area-inset-bottom)); }
+  .page-shell { max-width: 984px; margin: 0 auto; padding: 0 32px calc(2rem + env(safe-area-inset-bottom)); }
   main { margin-top: 2.4rem; }
   main > section:not([hidden]) { animation: appear .24s ease-out; }
   h2 { font-size: 1.35rem; line-height: 1.5; letter-spacing: -.02em; margin: 1.8rem 0 .9rem; }
   h3 { font-size: 1.05rem; margin: 0 0 .65rem; }
   p { margin: .6rem 0; }
   ul { list-style: none; padding: 0; margin: 0; }
-  .welcome { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: .25rem .2rem 2.2rem; }
-  .welcome h2 { font-size: clamp(1.8rem, 3.7vw, 2.65rem); font-weight: 750; letter-spacing: -.035em; line-height: 1.5; margin: .7rem 0 .8rem; }
-  .welcome h2 span { color: var(--accent); }
-  .welcome-copy > p { color: var(--muted); font-size: .9rem; max-width: 30rem; }
-  .hero-art { width: 260px; flex: 0 0 260px; margin-right: 4rem; }
-  .hero-art svg { display: block; width: 100%; height: auto; overflow: visible; }
   .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 26px; }
   .stat-card { display: flex; align-items: center; gap: 1rem; min-width: 0; padding: 1.15rem 1.35rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
   .stat-icon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 13px; color: var(--accent); background: var(--accent-soft); }
@@ -74,7 +65,7 @@
   .stat-value { display: flex; align-items: baseline; gap: .4rem; line-height: 1.4; margin-top: .2rem; }
   .stat-value strong { font-size: 1.65rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
   .stat-value span { color: var(--muted); font-size: .7rem; }
-  .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 272px; align-items: start; gap: 24px; }
+  .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
   .workspace-grid > *, .section-head > * { min-width: 0; }
   .study-panel { border: 1px solid var(--border); border-radius: 22px; background: var(--surface); padding: 1.65rem; box-shadow: var(--shadow); }
   .section-head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
@@ -104,14 +95,6 @@
   #empty-subjects > p { color: var(--muted); font-size: .8rem; max-width: 24rem; margin: .6rem auto; }
   #empty-subjects > p:has(button) { margin: 1.2rem auto .8rem; }
   #empty-subjects > .muted { font-size: .71rem; }
-  .study-aside { border-radius: 22px; padding: 1.5rem; background: var(--accent-soft); }
-  .study-aside h2 { margin: .65rem 0 1.4rem; font-size: 1.25rem; }
-  .flow-list { list-style: none; counter-reset: flow; padding: 0; margin: 0; }
-  .flow-list li { position: relative; counter-increment: flow; padding: 0 0 1.3rem 2.1rem; }
-  .flow-list li::before { content: counter(flow, decimal-leading-zero); position: absolute; top: .1rem; left: 0; color: var(--accent); font-size: .7rem; font-weight: 750; }
-  .flow-list strong { display: block; font-size: .83rem; font-weight: 650; }
-  .flow-list span { display: block; margin-top: .15rem; color: var(--muted); font-size: .74rem; line-height: 1.7; }
-  #show-tutorial { width: 100%; color: var(--accent); background: var(--surface); border: 1px solid var(--border); font-size: .8rem; margin-top: .25rem; }
   #screen-manager, #screen-pack-help, #screen-tutorial, #screen-quiz, #screen-result { max-width: 880px; margin: 0 auto; border-radius: 24px; padding: 2rem; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
   #screen-quiz { max-width: 780px; padding: 2rem 2.3rem; }
   #screen-quiz .section-head { gap: 1rem; margin-bottom: .9rem; }
@@ -194,30 +177,17 @@
   .delivery-note { color: var(--muted); margin-top: 2.2rem; padding-top: 1.3rem; border-top: 1px solid var(--border); text-align: center; }
   .delivery-note p { font-size: .69rem; line-height: 1.8; margin: .3rem 0; }
   .delivery-note p:empty { display: none; }
+  .delivery-note details { margin: 0; }
+  .delivery-note summary { font-size: .7rem; font-weight: 500; padding: .6rem 0; }
   @keyframes appear { from { opacity: .4; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 900px) {
-    .hero-art { margin-right: 0; width: 220px; flex-basis: 220px; }
-    .workspace-grid { grid-template-columns: minmax(0, 1fr) 235px; gap: 18px; }
     .study-panel { padding: 1.25rem; }
-    .study-aside { padding: 1.25rem; }
     .stat-card { padding: 1rem; gap: .75rem; }
   }
   @media (max-width: 700px) {
     .page-shell { padding-left: 20px; padding-right: 20px; }
     .app-header { padding: 1.15rem 0; }
-    .header-note { display: none; }
     main { margin-top: 1.7rem; }
-    .welcome { gap: 1rem; padding-bottom: 1.5rem; }
-    .hero-art { width: 142px; flex-basis: 142px; }
-    .welcome h2 { font-size: 1.85rem; }
-    .welcome-copy > p { font-size: .79rem; }
-    .workspace-grid { grid-template-columns: minmax(0, 1fr); }
-    .study-aside { padding: 1.25rem 1.5rem; }
-    .study-aside h2 { font-size: 1.1rem; margin-bottom: 1rem; }
-    .flow-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
-    .flow-list li { padding: 1.5rem 0 .7rem; }
-    .flow-list li::before { top: 0; }
-    #show-tutorial { margin-top: .7rem; }
     .stats-grid { gap: 10px; margin-bottom: 18px; }
     .stat-card { display: block; padding: .85rem .9rem; border-radius: 15px; }
     .stat-icon { width: 32px; height: 32px; margin-bottom: .65rem; border-radius: 9px; }
@@ -230,14 +200,8 @@
     .page-shell { padding-left: 14px; padding-right: 14px; }
     .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
     .brand { gap: .6rem; }
-    .brand h1 { font-size: 1rem; }
-    .header-note { font-size: .65rem; }
-    .welcome { align-items: flex-start; position: relative; }
-    .welcome-copy { position: relative; z-index: 1; }
-    .welcome h2 { font-size: 1.75rem; }
-    .welcome-copy > p { max-width: 235px; }
-    .hero-art { position: absolute; width: 103px; right: -2px; top: 17px; opacity: .85; }
-    .welcome-copy .eyebrow { font-size: .57rem; }
+    #show-tutorial { font-size: .82rem; padding: .5rem .85rem; }
+  .brand h1 { font-size: 1rem; }
     .stats-grid { gap: 8px; }
     .stat-card { padding: .8rem .65rem; }
     .stat-value { gap: .2rem; }
@@ -260,16 +224,11 @@
     #screen-manager > .panel:first-of-type { padding: 1rem; }
     .importance-row { justify-content: flex-start; }
     .importance-button { padding: .35rem .65rem; }
-    .flow-list { display: block; }
-    .flow-list li { padding: 0 0 1rem 2rem; }
-    .flow-list li::before { top: .1rem; }
     .actions button { flex-grow: 1; }
     #wrong-list li, #correct-list li { padding: 1rem; }
     dialog { padding: 1.25rem; }
   }
   @media (max-width: 360px) {
-    .hero-art { display: none; }
-    .header-note { display: none; }
     .section-head { gap: .85rem; }
     #open-manager { width: 100%; }
   }
@@ -281,9 +240,9 @@
 <header class="app-header">
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path d="M12 6v14M6 9h2m-2 4h2m8-4h2m-2 4h2"/></svg></span>
-    <div><h1>学習アプリ</h1><span class="brand-caption">YOUR PERSONAL STUDY SPACE</span></div>
+    <h1>学習アプリ</h1>
   </div>
-  <span class="header-note">少しずつ、自分のペースで</span>
+  <button type="button" id="show-tutorial" class="link-button">使い方</button>
 </header>
 <main>
   <div id="app-notice" class="notice" role="status" aria-live="polite" hidden>
@@ -294,15 +253,12 @@
 
   <section id="screen-tutorial" hidden>
     <div class="tutorial-head">
-      <h2>このアプリの使い方</h2>
+      <h2>使い方</h2>
       <button type="button" id="tutorial-skip" class="link-button">スキップ</button>
     </div>
 
-    <h3>くり返して覚えるためのアプリです</h3>
-    <p>答えた記録を残し、次にどの問題を出すかを自動で決めます。
-      できている問題は間をあけ、まちがえた問題は早めにもう一度出します。</p>
-
-    <h3>正解・不正解で、次に出るまでの間隔が変わります</h3>
+    <h3>復習の間隔</h3>
+    <p>復習時期を迎えた問題から優先して出題します。</p>
     <ul class="tutorial-list">
       <li>正解すると、その問題が次に出るまでの間隔がのびます</li>
       <li>まちがえると間隔がリセットされ、また近いうちに出ます</li>
@@ -310,83 +266,47 @@
     </ul>
     <p class="muted">問題が少ないときは、予定より早く出ることがあります。</p>
 
-    <h3>問題ごとに出やすさを変えられます</h3>
-    <p>答えを選ぶ画面にある「重点・標準・後回し」で切り替えます。</p>
+    <h3>重要度</h3>
+    <p>回答画面で問題ごとに変更できます。</p>
     <ul class="tutorial-list">
       <li><strong>重点</strong> ― 標準より短い間隔で復習します</li>
       <li><strong>標準</strong> ― ふつうの出やすさです</li>
       <li><strong>後回し</strong> ― 次に出るまでの間隔が2倍になります</li>
     </ul>
 
-    <h3>科目をしぼって出題できます</h3>
-    <p>この画面のあとに出る科目のチェックを入れると、その科目だけから出題します。
-      何も選ばなければ、すべての科目から出ます。</p>
+    <h3>科目の選択</h3>
+    <p>チェックした科目から出題します。未選択なら全科目が対象です。</p>
 
-    <h3>答え合わせのあとに解説が出ます</h3>
-    <p>最後の結果画面で、まちがえた問題と正解した問題のそれぞれに解説を表示します。
-      解説のない問題もあります。</p>
+    <h3>解説</h3>
+    <p>終了後の結果画面で確認できます。解説のない問題もあります。</p>
 
     <p class="tutorial-actions"><button type="button" id="tutorial-start">はじめる</button></p>
   </section>
 
   <section id="screen-start">
-    <div class="welcome">
-      <div class="welcome-copy">
-        <span class="eyebrow">A LITTLE EVERY DAY</span>
-        <h2>今日の学びを、<br><span>確かな知識に。</span></h2>
-        <p>少しずつ、何度でも。<br>講義の内容を、あなたのペースで復習しましょう。</p>
-      </div>
-      <div class="hero-art" aria-hidden="true">
-        <svg viewBox="0 0 260 210" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="142" cy="190" rx="91" ry="10" fill="var(--border)" opacity=".55"/>
-          <rect x="61" y="32" width="139" height="158" rx="17" transform="rotate(9 61 32)" fill="var(--accent-soft)" stroke="var(--border)"/>
-          <rect x="54" y="22" width="141" height="160" rx="16" transform="rotate(-7 54 22)" fill="var(--hero-paper)" stroke="var(--border)" stroke-width="1.5"/>
-          <path d="M73 46l23-3m-20 12 40-5" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
-          <rect x="78" y="76" width="16" height="16" rx="5" transform="rotate(-7 78 76)" fill="var(--accent-soft)"/>
-          <path d="m82 82 4 3 5-7M82 114l4 3 5-7" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="m106 78 55-7m-54 16 42-5m-38 26 55-7m-54 16 36-4m-49 35 56-7" stroke="var(--border)" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="195" cy="149" r="28" fill="var(--correct-soft)" stroke="var(--surface)" stroke-width="6"/>
-          <path d="m185 149 7 7 13-14" stroke="var(--correct)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M26 82h12m-6-6v12M211 39h10m-5-5v10" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity=".5"/>
-          <circle cx="43" cy="154" r="4" fill="var(--accent-soft)"/><circle cx="231" cy="94" r="4" fill="var(--correct)" opacity=".45"/>
-        </svg>
-      </div>
-    </div>
     <div class="stats-grid" aria-label="選択範囲の学習状況">
-      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h6l2 2h8v13H4Z"/><path d="M4 10h16"/></svg></span><div><span class="stat-label">学習する科目</span><div class="stat-value"><strong id="stat-subjects">0</strong><span>科目</span></div></div></div>
-      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6m-6 4h6m-6 4h3"/></svg></span><div><span class="stat-label">出題できる問題</span><div class="stat-value"><strong id="stat-questions">0</strong><span>問</span></div></div></div>
-      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a8 8 0 1 1 2 6M4 5v6h6"/><path d="M12 7v5l3 2"/></svg></span><div><span class="stat-label">復習のタイミング</span><div class="stat-value"><strong id="stat-review">0</strong><span>問</span></div></div></div>
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h6l2 2h8v13H4Z"/><path d="M4 10h16"/></svg></span><div><span class="stat-label">科目</span><div class="stat-value"><strong id="stat-subjects">0</strong><span>科目</span></div></div></div>
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6m-6 4h6m-6 4h3"/></svg></span><div><span class="stat-label">出題可能</span><div class="stat-value"><strong id="stat-questions">0</strong><span>問</span></div></div></div>
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a8 8 0 1 1 2 6M4 5v6h6"/><path d="M12 7v5l3 2"/></svg></span><div><span class="stat-label">要復習</span><div class="stat-value"><strong id="stat-review">0</strong><span>問</span></div></div></div>
     </div>
     <div class="workspace-grid">
       <div class="study-panel">
-        <div class="section-head"><h2 class="start-heading"><span class="step-number" aria-hidden="true">01</span>科目を選ぶ</h2>
-          <button type="button" id="open-manager">＋ 科目を追加・管理</button>
+        <div class="section-head"><h2 class="start-heading"><span class="step-number" aria-hidden="true">01</span>科目</h2>
+          <button type="button" id="open-manager">＋ 科目を管理</button>
         </div>
         <section id="empty-subjects" class="panel" aria-labelledby="empty-title" hidden>
           <span class="empty-icon" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path d="M12 6v14"/></svg></span>
-          <h3 id="empty-title">最初の科目を追加しよう</h3>
-          <p>講義の問題セットを読み込めば、<br>ここがあなたの学習スペースになります。</p>
-          <p><button type="button" id="empty-add-subject" class="primary">＋ 最初の科目を追加する</button></p>
-          <p class="muted">ClaudeやChatGPTで作った科目JSONを追加できます。</p>
+          <h3 id="empty-title">科目がありません</h3>
+          <p><button type="button" id="empty-add-subject" class="primary">＋ 科目を追加</button></p>
         </section>
         <div id="subjects" role="group" aria-label="科目"></div>
-        <p id="subject-selection-hint" class="muted">科目を選ばない場合は全科目から出題します。</p>
+        <p id="subject-selection-hint" class="muted">未選択なら全科目から出題。</p>
         <div class="session-settings">
-          <h2 class="start-heading"><span class="step-number" aria-hidden="true">02</span>問題数を選んで、スタート</h2>
+          <h2 class="start-heading"><span class="step-number" aria-hidden="true">02</span>問題数を選んで開始</h2>
           <div id="sizes"></div>
           <p id="start-note" class="muted"></p>
         </div>
       </div>
-      <aside class="study-aside" aria-label="学習の流れ">
-        <span class="eyebrow">HOW IT WORKS</span>
-        <h2>くり返すたび、<br>少しずつ身につく。</h2>
-        <ol class="flow-list">
-          <li><strong>科目を追加</strong><span>講義から作った問題セットを読み込みます。</span></li>
-          <li><strong>自分のペースで解く</strong><span>問題数と重点を選んで、無理なく復習。</span></li>
-          <li><strong>解説で振り返る</strong><span>まちがえた問題から、理解を深めます。</span></li>
-        </ol>
-        <button type="button" id="show-tutorial">使い方を詳しく見る ↗</button>
-      </aside>
     </div>
   </section>
 
@@ -394,9 +314,8 @@
     <div class="section-head"><h2 id="manager-title">科目を追加・管理</h2>
       <button type="button" id="manager-back">学習に戻る</button>
     </div>
-    <p>科目JSONを選ぶか、問題セットを貼り付けて追加します。</p>
-    <p class="muted">登録前に全問の内容を確認できる。アプリからAIへの送信は行わない。</p>
-    <button type="button" id="open-pack-help" class="link-button">Claude・ChatGPT用の指示文</button>
+    <p>問題のJSONファイルを選ぶか、貼り付けて追加します。</p>
+    <button type="button" id="open-pack-help" class="link-button">AI用の指示文</button>
     <div class="panel">
       <label class="field-label" for="pack-file">科目JSONファイルを選ぶ（2 MiB以下）</label>
       <input id="pack-file" type="file" accept=".json,application/json">
@@ -462,7 +381,7 @@
     </div>
     <div class="actions"><button type="button" id="next" class="primary" hidden>次の問題へ</button>
       <button type="button" id="finish-session" class="link-button">ここまでで終了</button></div>
-    <p class="muted">回答は1問ずつ保存します。途中で終了しても、回答済みの問題の解説を確認できます。</p>
+    <p class="muted">回答は自動保存。解説は終了後に表示します。</p>
   </section>
 
   <section id="screen-result" hidden>
@@ -475,8 +394,8 @@
     <p><button type="button" id="restart">科目・出題数を選ぶ</button></p>
   </section>
   <footer class="delivery-note">
-    <p class="muted">問題と学習記録は、この端末のブラウザに保存されます。友人とは問題のJSONファイルを共有できます。</p>
-    <p class="muted">iPhoneはSafariの共有から「ホーム画面に追加」で、アプリとして開けます。</p>
+    <p class="muted">問題・履歴はこのブラウザに保存されます。</p>
+    <details><summary>インストール・共有</summary><p>友人とは問題のJSONファイルを共有できます。</p><p class="muted">iPhoneはSafariの共有から「ホーム画面に追加」で、アプリとして開けます。</p></details>
     <p id="offline-status" class="muted" role="status"></p>
   </footer>
 </main>
@@ -490,7 +409,7 @@
 <script src="scheduler.js?v=20260922-legacy64"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
 <script src="subject-manager.js?v=20260923-exam"></script>
-<script src="app.js?v=20261006-modern"></script>
+<script src="app.js?v=20261006-compact"></script>
 <script src="install-support.js"></script>
 </body>
 </html>
