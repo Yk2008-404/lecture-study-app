@@ -6,6 +6,9 @@ const SubjectManager = (() => {
   let revision = 0;
   let busy = false;
   let deleteTarget = null;
+  let inputFilename = '';
+  let inputOrigin = 'file';
+  let draftOrigin = null;
   const $ = (id) => document.getElementById(id);
   function element(tag, text, className) {
     const el = document.createElement(tag);
@@ -16,6 +19,7 @@ const SubjectManager = (() => {
   function invalidate() {
     revision++;
     draft = null;
+    draftOrigin = null;
     $('pack-preview').hidden = true;
     $('pack-errors').hidden = true;
     $('register-pack').disabled = true;
@@ -28,6 +32,8 @@ const SubjectManager = (() => {
     busy = value;
     ['validate-pack', 'register-pack', 'pack-file', 'pack-input', 'cancel-pack', 'manager-back', 'open-pack-help'].forEach((id) => { $(id).disabled = value; });
     if (!value && !draft) $('register-pack').disabled = true;
+    const editor = $('manual-create');
+    if (editor) editor.inert = value;
   }
   async function refresh() {
     const imported = await Storage.getImportedQuestions();
@@ -92,12 +98,20 @@ const SubjectManager = (() => {
     const input = $('pack-input').value;
     setBusy(true);
     try {
-      const result = await Storage.validateImport(input);
+      const parsed = typeof QuestionImport !== 'undefined'
+        ? QuestionImport.parse(input, { filename: inputFilename }) : { pack: QuestionPacks.parse(input), warnings: [] };
+      const result = await Storage.validateImport(JSON.stringify(parsed.pack));
       if (requestRevision !== revision) return;
       if (!result.ok) { errors(result.errors); return; }
       const imported = await Storage.getImportedQuestions();
       if (requestRevision !== revision) return;
       draft = result.pack;
+      draftOrigin = inputOrigin;
+      const warnings = $('import-warnings');
+      if (warnings) {
+        warnings.replaceChildren(...parsed.warnings.map(message => element('li', message)));
+        warnings.hidden = !parsed.warnings.length;
+      }
       const s = result.summary;
       const exists = app.builtIns.concat(imported).some((q) => q.subject === draft.subject);
       $('preview-subject').textContent = `${draft.subject} / ${exists ? '既存科目への追加' : '新規科目'}`;
@@ -123,6 +137,8 @@ const SubjectManager = (() => {
       });
       $('pack-preview').hidden = false;
       $('pack-preview').scrollIntoView({ block: 'start' });
+    } catch (error) {
+      if (requestRevision === revision) errors([{ path: '問題集', reason: error.message }]);
     } finally { setBusy(false); }
   }
   async function register() {
@@ -138,10 +154,14 @@ const SubjectManager = (() => {
     } finally { setBusy(false); }
     // 保存はこの時点で確定。後続の描画失敗を登録失敗として再試行しない。
     const subject = result.pack.subject;
+    const wasManual = draftOrigin === 'manual';
     $('pack-input').value = '';
     $('pack-file').value = '';
     $('file-name').textContent = '';
+    inputFilename = '';
+    inputOrigin = 'file';
     invalidate();
+    if (wasManual && typeof QuestionEditor !== 'undefined') QuestionEditor.reset();
     app.notify(`${subject}を ${result.summary.total} 問追加した（出題可能 ${result.summary.playable} 問）。` + (result.reusedLegacyIds.length ? `旧履歴 ${result.reusedLegacyIds.length} 問分を引き継いだ。` : '') + (result.restartedLegacyIds.length ? `形式変更 ${result.restartedLegacyIds.length} 問は旧履歴を参照しない。旧データは保持した。` : ''));
     await app.refreshQuestions();
     await refresh();
@@ -152,19 +172,22 @@ const SubjectManager = (() => {
     if (busy) return;
     const file = $('pack-file').files[0];
     invalidate();
+    $('pack-input').value = '';
+    $('file-name').textContent = '';
+    inputFilename = '';
+    inputOrigin = 'file';
     if (!file) return;
     const requestRevision = revision;
     setBusy(true);
     try {
-      if (file.size > QuestionPacks.MAX_BYTES) {
-        $('pack-input').value = '';
-        errors([{ path: 'ファイル', reason: '2 MiB以下のJSONファイルを選ぶ' }]);
-        return;
-      }
-      const text = await file.text();
+      const result = await DocumentReader.read(file);
       if (requestRevision !== revision) return;
-      $('pack-input').value = text;
+      $('pack-input').value = result.text;
+      inputFilename = result.filename;
       $('file-name').textContent = `選択したファイル：${file.name}`;
+    } catch (error) {
+      if (requestRevision === revision) errors([{ path: 'ファイル', reason: error.message }]);
+      return;
     } finally { setBusy(false); }
     await preview();
   }
@@ -243,7 +266,7 @@ const SubjectManager = (() => {
     on('validate-pack', preview);
     on('register-pack', register);
     on('cancel-pack', invalidate);
-    on('pack-input', () => { $('file-name').textContent = ''; invalidate(); }, 'input');
+    on('pack-input', () => { $('file-name').textContent = ''; inputFilename = ''; inputOrigin = 'file'; invalidate(); }, 'input');
     on('pack-file', readFile, 'change');
     on('cancel-delete', () => { if (!busy) { $('delete-dialog').close(); deleteTarget = null; } });
     on('confirm-delete', confirmDelete);
@@ -252,7 +275,30 @@ const SubjectManager = (() => {
     on('use-pack-sample', async () => {
       $('pack-input').value = JSON.stringify(PackHelp.sample, null, 2);
       $('file-name').textContent = '';
+      inputFilename = ''; inputOrigin = 'file';
       invalidate(); await open(); $('paste-pack').open = true; $('pack-input').focus();
+    });
+    if ($('download-text-template')) on('download-text-template', () => {
+      const blob = new Blob([$('text-template').textContent + '\n'], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = element('a'); anchor.href = url; anchor.download = '問題集の見本.txt';
+      document.body.append(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    });
+    if (typeof QuestionEditor !== 'undefined') QuestionEditor.initialize({
+      onChange() {
+        invalidate();
+        if (inputOrigin === 'manual') { $('pack-input').value = ''; inputOrigin = 'file'; }
+      },
+      async onPreview(pack) {
+        if (busy) throw new Error('処理が終わってから、もう一度確認してください。');
+        invalidate();
+        $('pack-input').value = JSON.stringify(pack, null, 2);
+        $('pack-file').value = ''; $('file-name').textContent = '';
+        inputFilename = ''; inputOrigin = 'manual';
+        await preview();
+        if (draft) $('manual-create').open = false;
+      },
     });
   }
   return { initialize, open, refresh };

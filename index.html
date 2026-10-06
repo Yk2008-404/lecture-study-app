@@ -148,6 +148,18 @@
   textarea { display: block; resize: vertical; min-height: 12rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; color: var(--fg); background: var(--surface); }
   .code-input { font: 16px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; }
   .field-label { display: block; font-weight: 600; margin: .5rem 0 .7rem; font-size: .86rem; }
+  .manual-field { display: block; margin: 1rem 0; }
+  .manual-input { width: 100%; min-width: 0; min-height: 44px; padding: .65rem .8rem; font-size: 16px; color: var(--fg); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  textarea.manual-input { min-height: 6rem; }
+  .manual-choices { min-width: 0; border: 0; padding: 0; margin: 1rem 0; }
+  .manual-choice { display: flex; align-items: center; gap: .6rem; margin: .6rem 0; }
+  .manual-choice label { display: inline-flex; align-items: center; min-height: 44px; flex-shrink: 0; }
+  .manual-answer { display: inline-flex; align-items: center; gap: .3rem; min-width: 4.5rem; min-height: 44px; cursor: pointer; }
+  .manual-answer input { accent-color: var(--accent); width: 18px; height: 18px; margin: 0; flex-shrink: 0; }
+  .manual-choice .manual-field { flex: 1; min-width: 0; margin: 0; }
+  .manual-question-list { margin: 1.2rem 0; overflow-wrap: anywhere; }
+  .manual-question-list li { padding: 1rem 0; border-bottom: 1px solid var(--border); }
+  #import-warnings { font-size: .82rem; color: var(--muted); }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .8rem/1.9 ui-monospace, Consolas, monospace; max-height: 28rem; overflow: auto; padding: 1rem; background: var(--inset); border-radius: 12px; }
   details { margin: .8rem 0; padding: .3rem 0; }
   summary { cursor: pointer; font-weight: 600; font-size: .86rem; overflow-wrap: anywhere; padding: .5rem 0; min-height: 44px; }
@@ -323,15 +335,38 @@
     <div class="section-head"><h2 id="manager-title">科目を追加・管理</h2>
       <button type="button" id="manager-back">学習に戻る</button>
     </div>
-    <p>問題のJSONファイルを選ぶか、貼り付けて追加します。</p>
+    <p>ファイルから追加、または自分で問題を作成できます。</p>
     <button type="button" id="open-pack-help" class="link-button">AI用の指示文</button>
+    <details class="panel" id="manual-create"><summary>自分で問題を作る</summary><div id="manual-editor"></div></details>
     <div class="panel">
-      <label class="field-label" for="pack-file">科目JSONファイルを選ぶ（2 MiB以下）</label>
-      <input id="pack-file" type="file" accept=".json,application/json">
+      <label class="field-label" for="pack-file">問題集を選ぶ</label>
+      <input id="pack-file" type="file" accept=".json,.docx,.txt,.md,.markdown,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown">
+      <p class="muted">Word（.docx）は5 MiB、JSON・TXT・Markdownは2 MiBまで。</p>
       <p id="file-name" class="muted"></p>
-      <details id="paste-pack"><summary>JSONを貼り付ける・選んだ内容を確認する</summary>
+      <details id="import-format"><summary>テキスト・Wordの書式</summary>
+        <p class="muted">問題・選択肢・正解を次のように書きます。Wordの番号は自動番号を使わず、文字として入力してください。画像・数式オブジェクトは未対応です。</p>
+        <pre id="text-template">科目：動作確認
+
+問1：1 + 1 はいくつですか？
+A. 2
+B. 3
+正解：A
+解説：1と1を足すと2です。
+出典：動作確認用サンプル
+出典箇所：問1
+
+問2：日本語の「犬」に対応する英語は？
+A. cat
+B. dog
+正解：B
+解説：犬はdog、猫はcatです。
+出典：動作確認用サンプル
+出典箇所：問2</pre>
+        <button type="button" id="download-text-template">テキストの見本を保存</button>
+      </details>
+      <details id="paste-pack"><summary>貼り付ける・読み込んだ本文を確認</summary>
       <label class="field-label" for="pack-input">問題セットを貼り付ける</label>
-      <textarea id="pack-input" class="code-input" rows="9" spellcheck="false" placeholder='{"schemaVersion":1,"subject":"科目名","questions":[...]}'></textarea>
+      <textarea id="pack-input" rows="9" spellcheck="false" placeholder="問題集のテキスト、またはJSONを貼り付け"></textarea>
       </details>
       <div class="actions"><button type="button" id="validate-pack" class="primary">内容を確認</button></div>
     </div>
@@ -339,6 +374,7 @@
     <section id="pack-preview" class="panel" hidden aria-labelledby="preview-title">
       <h3 id="preview-title">登録前の確認</h3>
       <p id="preview-subject"></p><p id="preview-counts"></p><p id="preview-explanation"></p>
+      <ul id="import-warnings" hidden></ul>
       <p id="preview-history" class="muted"></p>
       <details><summary>出典一覧</summary><ul id="preview-sources"></ul></details>
       <p class="muted">形式の検査は内容の正しさを保証しない。教材と正解を確認してから登録する。</p>
@@ -417,7 +453,11 @@
 <script src="storage.js?v=20260922-legacy64"></script>
 <script src="scheduler.js?v=20260922-legacy64"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
-<script src="subject-manager.js?v=20260923-exam"></script>
+<script src="vendor/fflate-0.8.2.js"></script>
+<script src="document-reader.js?v=20261006-import"></script>
+<script src="question-import.js?v=20261006-import"></script>
+<script src="question-editor.js?v=20261006-editor"></script>
+<script src="subject-manager.js?v=20261006-import"></script>
 <script src="app.js?v=20261006-compact"></script>
 <script src="install-support.js"></script>
 </body>
