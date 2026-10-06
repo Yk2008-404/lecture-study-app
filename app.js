@@ -115,6 +115,7 @@ async function renderQuestion() {
   const progressAll = await Storage.getAllProgress();
   const progress = Scheduler.getProgress(progressAll, question);
   await Storage.putProgress(question.id, Scheduler.markAsked(progress, new Date()));
+  const writtenDraft = question.questionType === '記述' ? await loadWrittenDraft(question) : null;
 
   document.getElementById('retry-action').hidden = true;
   document.getElementById('retry-action').onclick = null;
@@ -125,9 +126,14 @@ async function renderQuestion() {
   renderSessionProgress();
   document.getElementById('question-subject').textContent = question.subject;
   document.getElementById('question-text').textContent = question.text;
+  document.getElementById('quiz-note').textContent = question.questionType === '記述'
+    ? '下書き・記録はこの端末に保存されます。'
+    : '回答は自動保存。解説は終了後に表示します。';
 
   const list = document.getElementById('choices');
   list.textContent = '';
+  list.hidden = question.questionType === '記述';
+  renderWritten(question, writtenDraft);
 
   question.choices.forEach((choice, i) => {
     const li = document.createElement('li');
@@ -150,6 +156,7 @@ async function renderQuestion() {
 
 async function answer(selected) {
   if (currentScreen !== 'quiz' || state.answered || quizBusy) return;
+  if (state.questions[state.index].questionType === '記述') return;
   quizBusy = true;
   const question = state.questions[state.index];
   const isCorrect = selected === question.answer;
@@ -180,6 +187,144 @@ async function answer(selected) {
     next.hidden = false;
     next.textContent = state.index === state.questions.length - 1 ? '結果を見る' : '次の問題へ';
     next.focus();
+  } finally { quizBusy = false; }
+}
+
+async function loadWrittenDraft(question) {
+  let draft = WrittenPractice.draft(question);
+  if (draft.attemptId && (await Storage.getAnswers()).some(r => r.questionId === question.id && r.attemptId === draft.attemptId)) {
+    WrittenPractice.discard(question, draft);
+    draft = WrittenPractice.draft(question);
+  }
+  return draft;
+}
+
+function renderWritten(question, draft) {
+  const panel = document.getElementById('written-tools');
+  panel.hidden = question.questionType !== '記述';
+  if (panel.hidden) return;
+  const response = document.getElementById('written-response');
+  response.value = draft.response;
+  response.readOnly = false;
+  document.getElementById('written-grade').value = draft.resultText;
+  document.getElementById('written-grade-panel').open = !!draft.resultText;
+  document.getElementById('written-transfer').hidden = false;
+  document.getElementById('written-prompt-panel').hidden = true;
+  document.getElementById('written-prompt').value = '';
+  document.getElementById('written-evaluation').hidden = true;
+  document.getElementById('written-status').textContent = draft.response ? '下書きを復元しました。' : '';
+}
+
+function activeWritten() {
+  if (currentScreen !== 'quiz' || state.answered || quizBusy) return null;
+  const question = state.questions[state.index];
+  return question?.questionType === '記述' ? question : null;
+}
+
+function saveWrittenDraft() {
+  const question = activeWritten();
+  if (!question) return;
+  const response = document.getElementById('written-response').value;
+  const resultInput = document.getElementById('written-grade');
+  const saved = WrittenPractice.update(question, response, resultInput.value);
+  resultInput.value = saved.resultText;
+  document.getElementById('written-prompt-panel').hidden = true;
+  document.getElementById('written-status').textContent = '下書きを保存しました。';
+}
+
+async function copyWritten() {
+  const question = activeWritten();
+  if (!question) return;
+  const response = document.getElementById('written-response').value;
+  const draft = WrittenPractice.prepare(question, response);
+  const text = WrittenPractice.prompt(question, draft);
+  const input = document.getElementById('written-prompt');
+  input.value = text;
+  const panel = document.getElementById('written-prompt-panel');
+  panel.hidden = false;
+  try {
+    if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+    await navigator.clipboard.writeText(text);
+    document.getElementById('written-status').textContent = 'コピーしました。使うAIに貼り付けてください。';
+  } catch (_) {
+    panel.open = true;
+    input.focus(); input.select();
+    document.getElementById('written-status').textContent = '下の指示文を選択してコピーしてください。';
+  }
+}
+
+function appendWrittenEvaluation(container, question, response, grade, includeResponse = true) {
+  for (const [label, content] of [
+    ['AI評価', `${grade.score} / 100`], ['あなたの解答', response],
+    ['評価・不足点', grade.feedback], ['改善例', grade.improvedAnswer], ['模範解答', question.answer],
+  ].filter(([label]) => includeResponse || label !== 'あなたの解答')) {
+    const block = document.createElement('div');
+    block.className = 'written-detail';
+    const title = document.createElement('strong'); title.textContent = label;
+    const body = document.createElement('p'); body.className = 'written-copy'; body.textContent = content;
+    block.append(title, body); container.appendChild(block);
+  }
+}
+
+async function applyWrittenGrade() {
+  const question = activeWritten();
+  if (!question) return;
+  let response = document.getElementById('written-response').value;
+  const raw = document.getElementById('written-grade').value;
+  const draft = WrittenPractice.update(question, response, raw);
+  let grade = WrittenPractice.parseResult(raw, question, draft);
+  let isCorrect = grade.score >= 80;
+  quizBusy = true;
+  try {
+    try { await Storage.recordAnswer(question.id, {
+      questionId: question.id, isCorrect, answeredAt: new Date().toISOString(),
+      response, grading: grade, attemptId: draft.attemptId,
+    }, stored => {
+      const progress = Scheduler.getProgress(stored ? { [question.id]: stored } : {}, question);
+      return Scheduler.applyAnswer(progress, isCorrect, question.questionType);
+    }); } catch (error) {
+      if (error.code !== 'ANSWER_ALREADY_RECORDED') throw error;
+      response = error.record.response; grade = error.record.grading; isCorrect = error.record.isCorrect;
+    }
+    // Mark success before optional draft cleanup, so a cleanup error cannot duplicate the answer.
+    state.answered = true;
+    state.results.push({ question, selected: response, isCorrect, grading: grade });
+    document.getElementById('app-notice').hidden = true;
+    document.getElementById('retry-action').hidden = true;
+    document.getElementById('retry-action').onclick = null;
+    renderSessionProgress();
+    document.getElementById('written-response').readOnly = true;
+    document.getElementById('written-response').value = response;
+    document.getElementById('written-transfer').hidden = true;
+    document.getElementById('written-status').textContent = '採点結果を保存しました。';
+    const evaluation = document.getElementById('written-evaluation');
+    evaluation.textContent = '';
+    appendWrittenEvaluation(evaluation, question, response, grade, false);
+    evaluation.hidden = false;
+    evaluation.setAttribute('tabindex', '-1');
+    evaluation.focus();
+    evaluation.scrollIntoView({ block: 'start' });
+    const feedback = document.getElementById('feedback');
+    feedback.textContent = isCorrect ? '正解として記録' : '要復習として記録';
+    feedback.className = `feedback ${isCorrect ? 'is-correct' : 'is-incorrect'}`;
+    const next = document.getElementById('next');
+    next.hidden = false;
+    next.textContent = state.index === state.questions.length - 1 ? '結果を見る' : '次の問題へ';
+    try { WrittenPractice.discard(question, draft); }
+    catch (_) { notify('採点結果は保存済みです。下書きの削除だけ失敗しました。', true); }
+  } finally { quizBusy = false; }
+}
+
+async function resumeWritten() {
+  if (quizBusy || subjectBusy) return;
+  quizBusy = true;
+  try {
+    await refreshQuestions();
+    const pending = WrittenPractice.pending(availableQuestions, await Storage.getAnswers());
+    if (!pending.length) { await renderStart(); return; }
+    state.questions = pending;
+    state.index = 0; state.results = []; state.answered = false;
+    await renderQuestion(); showScreen('quiz');
   } finally { quizBusy = false; }
 }
 
@@ -252,7 +397,9 @@ function appendResultItem(list, result) {
   li.appendChild(text);
 
   // 正解した問題は「あなたの解答 / 正解」が同じ内容になるため出さない。
-  if (!result.isCorrect) {
+  if (result.question.questionType === '記述') {
+    appendWrittenEvaluation(li, result.question, result.selected, result.grading);
+  } else if (!result.isCorrect) {
     const detail = document.createElement('p');
     detail.className = 'result-detail';
     detail.textContent =
@@ -421,6 +568,13 @@ async function renderStart() {
   renderSubjects();
   await renderStartNote();
 
+  const resume = document.getElementById('resume-written');
+  if (typeof WrittenPractice !== 'undefined') {
+    const pending = WrittenPractice.pending(availableQuestions, await Storage.getAnswers());
+    resume.hidden = pending.length === 0;
+    resume.textContent = `記述の続き ${pending.length} 問`;
+  }
+
   showScreen('start');
 }
 
@@ -450,6 +604,11 @@ document.getElementById('show-tutorial').addEventListener('click', openTutorial)
 document.getElementById('tutorial-skip').addEventListener('click', safeAction(closeTutorial));
 document.getElementById('tutorial-start').addEventListener('click', safeAction(closeTutorial));
 document.getElementById('dismiss-notice').addEventListener('click', () => { document.getElementById('app-notice').hidden = true; });
+document.getElementById('written-response').addEventListener('input', safeAction(saveWrittenDraft));
+document.getElementById('written-grade').addEventListener('input', safeAction(saveWrittenDraft));
+document.getElementById('copy-written').addEventListener('click', safeAction(copyWritten));
+document.getElementById('apply-written').addEventListener('click', safeAction(applyWrittenGrade));
+document.getElementById('resume-written').addEventListener('click', safeAction(resumeWritten));
 SubjectManager.initialize({ showScreen, renderStart, refreshQuestions, notify, safeAction, builtIns: QUESTIONS });
 window.addEventListener('storage', safeAction(async (event) => {
   if (!Storage.isStorageKey(event.key)) return;

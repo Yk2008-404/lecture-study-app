@@ -4,13 +4,13 @@ const QuestionPacks = (() => {
   const SCHEMA_VERSION = 1;
   const MAX_BYTES = 2 * 1024 * 1024;
   const FORMATS = ['用語→定義', '定義→用語', 'その他'];
-  const TYPES = ['選択肢', '正誤', '想起'];
+  const TYPES = ['選択肢', '正誤', '想起', '記述'];
   const FIELDS = ['id', 'subject', 'source', 'format', 'questionType', 'text', 'choices', 'answer', 'explanation', 'importance'];
   const FORBIDDEN_IDS = ['__proto__', 'constructor', 'prototype'];
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const object = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
   const string = (s) => typeof s === 'string' && s.trim().length > 0;
-  const supported = (q) => q.questionType === '選択肢' || q.questionType === '正誤';
+  const supported = (q) => q.questionType === '選択肢' || q.questionType === '正誤' || q.questionType === '記述';
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   /** キー順に依存しない照合。IDは含めず、既定値の表現差を吸収する。 */
@@ -116,12 +116,17 @@ const QuestionPacks = (() => {
         if (!string(q.source.document)) bad('source.document', '空でない資料名が必要');
         if (!(string(q.source.location) || (Number.isInteger(q.source.location) && q.source.location >= 1))) bad('source.location', '見出し等の文字列、または1以上のページ番号が必要');
       }
-      if (!Array.isArray(q.choices) || q.choices.length < 2) bad('choices', '2つ以上の選択肢が必要（想起は保存のみ）');
-      else {
-        q.choices.forEach((c, j) => { if (!string(c)) bad(`choices[${j}]`, '空でない文字列が必要'); });
-        if (new Set(q.choices).size !== q.choices.length) bad('choices', '同一の選択肢が重複している');
+      if (q.questionType === '記述') {
+        if (!Array.isArray(q.choices) || q.choices.length !== 0) bad('choices', '記述形式は空の配列 [] を指定する');
+        if (!string(q.answer)) bad('answer', '記述形式は空でない模範解答の文字列が必要');
+      } else {
+        if (!Array.isArray(q.choices) || q.choices.length < 2) bad('choices', '2つ以上の選択肢が必要（想起は保存のみ）');
+        else {
+          q.choices.forEach((c, j) => { if (!string(c)) bad(`choices[${j}]`, '空でない文字列が必要'); });
+          if (new Set(q.choices).size !== q.choices.length) bad('choices', '同一の選択肢が重複している');
+        }
+        if (!Number.isInteger(q.answer) || q.answer < 0 || !Array.isArray(q.choices) || q.answer >= q.choices.length) bad('answer', '0から選択肢数−1までの整数が必要');
       }
-      if (!Number.isInteger(q.answer) || q.answer < 0 || !Array.isArray(q.choices) || q.answer >= q.choices.length) bad('answer', '0から選択肢数−1までの整数が必要');
       if (q.questionType === '正誤' && JSON.stringify(q.choices) !== JSON.stringify(['正しい', '誤り'])) bad('choices', '正誤形式は ["正しい", "誤り"] の順で指定する');
       if (own(q, 'importance') && !['A', 'B', 'C'].includes(q.importance)) bad('importance', 'A / B / C のいずれか');
       if (own(q, 'explanation') && typeof q.explanation !== 'string') bad('explanation', '解説は文字列。不要なら項目を省略する');
@@ -137,12 +142,13 @@ const QuestionPacks = (() => {
   }
 
   function summarize(questions) {
-    const summary = { total: questions.length, choice: 0, trueFalse: 0, recall: 0, playable: 0, explained: 0, sources: [] };
+    const summary = { total: questions.length, choice: 0, trueFalse: 0, recall: 0, written: 0, playable: 0, explained: 0, sources: [] };
     const sources = new Set();
     questions.forEach((q) => {
       if (q.questionType === '選択肢') summary.choice++;
       if (q.questionType === '正誤') summary.trueFalse++;
       if (q.questionType === '想起') summary.recall++;
+      if (q.questionType === '記述') summary.written++;
       if (supported(q)) summary.playable++;
       if (typeof q.explanation === 'string' && q.explanation.trim()) summary.explained++;
       const s = `${q.source.document} / ${q.source.location}`;

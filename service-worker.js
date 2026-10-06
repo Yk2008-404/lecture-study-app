@@ -2,7 +2,7 @@
 
 // The distribution builder replaces this version with a digest of the app files.
 // If distributing these source files directly, change it after every app update.
-const CACHE_VERSION = 'eda1ca29354ae278';
+const CACHE_VERSION = '2e8000819c2fee6c';
 const CACHE_PREFIX = `study-app-offline:${self.registration.scope}:`;
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const RUNTIME_FILES = [
@@ -20,6 +20,7 @@ const RUNTIME_FILES = [
   'question-import.js',
   'question-editor.js',
   'subject-manager.js',
+  'written-practice.js',
   'app.js',
   'install-support.js',
   'manifest.webmanifest',

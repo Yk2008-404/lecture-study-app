@@ -201,6 +201,10 @@ const Storage = (() => {
     async recordAnswer(id, record, updateProgress) {
       return run(() => {
         const data = imports();
+        if (record.attemptId) {
+          const saved = data.answers.concat(legacyAnswers()).find(r => r.questionId === id && r.attemptId === record.attemptId);
+          if (saved) throw Object.assign(fail('この採点結果はすでに記録済みです。'), { code: 'ANSWER_ALREADY_RECORDED', record: clone(saved) });
+        }
         if (checkActive(data, id)) {
           const legacy = legacyProgress();
           const previous = own(data.progress, id) ? data.progress[id] : legacy[id];

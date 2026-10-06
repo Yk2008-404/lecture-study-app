@@ -42,22 +42,32 @@ const QuestionEditor = (() => {
   }
   function setBusy(value) {
     busy = value;
-    container.querySelectorAll('input, textarea, button').forEach(node => { node.disabled = value; });
+    container.querySelectorAll('input, textarea, select, button').forEach(node => { node.disabled = value; });
     fields.preview.disabled = value || !questions.length;
+  }
+  function isWritten() { return fields.type.value === '記述'; }
+  function updateType() {
+    const written = isWritten();
+    fields.choicesGroup.hidden = written;
+    fields.modelGroup.hidden = !written;
+    fields.modelAnswer.required = written;
+    fields.explanationLabel.textContent = written ? '解説・採点のポイント（任意）' : '解説（任意）';
   }
   function clearQuestion() {
     editingId = null;
     fields.text.value = '';
     fields.choices.forEach(input => { input.value = ''; });
     fields.answers.forEach(input => { input.checked = false; });
+    fields.modelAnswer.value = '';
     fields.explanation.value = '';
     fields.source.value = '';
     fields.location.value = '';
     fields.add.textContent = '問題を追加';
     fields.cancel.hidden = true;
+    updateType();
   }
   function hasUnaddedInput() {
-    return editingId !== null || [fields.text, ...fields.choices, fields.explanation, fields.source, fields.location]
+    return editingId !== null || [fields.text, ...fields.choices, fields.modelAnswer, fields.explanation, fields.source, fields.location]
       .some(input => input.value.trim()) || fields.answers.some(input => input.checked);
   }
   function renderList() {
@@ -67,7 +77,8 @@ const QuestionEditor = (() => {
     questions.forEach((entry, index) => {
       const item = element('li', undefined, 'preview-question');
       item.append(element('p', `${index + 1}. ${entry.question.text}`));
-      item.append(element('p', `正解：${entry.question.choices[entry.question.answer]}`, 'preview-answer'));
+      const q = entry.question;
+      item.append(element('p', q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${q.choices[q.answer]}`, 'preview-answer'));
       const actions = element('div', undefined, 'actions');
       const edit = button('編集');
       edit.addEventListener('click', () => {
@@ -75,14 +86,17 @@ const QuestionEditor = (() => {
         if (hasUnaddedInput()) { error('入力中の問題を追加するか、取り消してください。', fields.add); return; }
         const q = entry.question;
         editingId = q.id;
+        fields.type.value = q.questionType === '記述' ? '記述' : '選択肢';
         fields.text.value = q.text;
         fields.choices.forEach((input, i) => { input.value = q.choices[i] || ''; });
         fields.answers.forEach((input, i) => { input.checked = i === q.answer; });
+        fields.modelAnswer.value = q.questionType === '記述' ? q.answer : '';
         fields.explanation.value = q.explanation || '';
         fields.source.value = entry.customSource ? q.source.document : '';
         fields.location.value = entry.customSource ? String(q.source.location) : '';
         fields.add.textContent = '変更を反映';
         fields.cancel.hidden = false;
+        updateType();
         changed();
         fields.text.focus();
       });
@@ -106,14 +120,22 @@ const QuestionEditor = (() => {
     if (!subject) { error('科目名を入力してください。', fields.subject); return; }
     const text = fields.text.value.trim();
     if (!text) { error('問題文を入力してください。', fields.text); return; }
-    const values = fields.choices.map(input => input.value.trim());
-    const missing = values.slice(0, 2).findIndex(value => !value);
-    if (missing !== -1) { error('選択肢1・2を入力してください。', fields.choices[missing]); return; }
-    const selected = fields.answers.findIndex(input => input.checked);
-    if (selected === -1) { error('正解を1つ選んでください。', fields.answers[0]); return; }
-    if (!values[selected]) { error('正解に選んだ選択肢が空です。', fields.choices[selected]); return; }
-    const choices = values.filter(Boolean);
-    if (new Set(choices).size !== choices.length) { error('同じ選択肢は使えません。', fields.choices[0]); return; }
+    const written = isWritten();
+    let choices = [], answer;
+    if (written) {
+      answer = fields.modelAnswer.value.trim();
+      if (!answer) { error('模範解答を入力してください。', fields.modelAnswer); return; }
+    } else {
+      const values = fields.choices.map(input => input.value.trim());
+      const missing = values.slice(0, 2).findIndex(value => !value);
+      if (missing !== -1) { error('選択肢1・2を入力してください。', fields.choices[missing]); return; }
+      const selected = fields.answers.findIndex(input => input.checked);
+      if (selected === -1) { error('正解を1つ選んでください。', fields.answers[0]); return; }
+      if (!values[selected]) { error('正解に選んだ選択肢が空です。', fields.choices[selected]); return; }
+      choices = values.filter(Boolean);
+      if (new Set(choices).size !== choices.length) { error('同じ選択肢は使えません。', fields.choices[0]); return; }
+      answer = values.slice(0, selected).filter(Boolean).length;
+    }
     const sourceName = fields.source.value.trim();
     const location = fields.location.value.trim();
     if (Boolean(sourceName) !== Boolean(location)) {
@@ -127,10 +149,10 @@ const QuestionEditor = (() => {
       subject,
       source: sourceName ? { document: sourceName, location } : { document: '自作問題', location: `問題${number}` },
       format: 'その他',
-      questionType: JSON.stringify(choices) === JSON.stringify(['正しい', '誤り']) ? '正誤' : '選択肢',
+      questionType: written ? '記述' : (JSON.stringify(choices) === JSON.stringify(['正しい', '誤り']) ? '正誤' : '選択肢'),
       text,
       choices,
-      answer: values.slice(0, selected).filter(Boolean).length,
+      answer,
     };
     const explanation = fields.explanation.value.trim();
     if (explanation) question.explanation = explanation;
@@ -174,11 +196,14 @@ const QuestionEditor = (() => {
     generation++;
     container.replaceChildren();
     fields = {};
+    const labels = {};
     container.append(element('p', '未登録の問題は再読み込みで消えます。', 'muted'));
     function inputField(parent, name, label, multiline = false) {
       const wrapper = element('div', undefined, 'manual-field');
       const title = element('label', label, 'field-label');
       title.htmlFor = `manual-${name}`;
+      title.id = `manual-${name}-label`;
+      labels[name] = title;
       const input = element(multiline ? 'textarea' : 'input', undefined, 'manual-input');
       input.id = title.htmlFor;
       if (multiline) input.rows = name === 'text' ? 3 : 2;
@@ -196,8 +221,26 @@ const QuestionEditor = (() => {
     const form = element('form', undefined, 'manual-question-form');
     form.noValidate = true;
     form.addEventListener('submit', event => { event.preventDefault(); addQuestion(); });
+    const typeGroup = element('div', undefined, 'manual-field');
+    const typeLabel = element('label', '形式', 'field-label');
+    typeLabel.htmlFor = 'manual-type';
+    fields.type = element('select', undefined, 'manual-input');
+    fields.type.id = 'manual-type';
+    ['選択肢', '記述'].forEach(value => {
+      const option = element('option', value); option.value = value; fields.type.append(option);
+    });
+    fields.type.value = '選択肢';
+    fields.type.addEventListener('change', () => {
+      if (busy) return;
+      updateType();
+      fields.cancel.hidden = !hasUnaddedInput();
+      changed();
+    });
+    typeGroup.append(typeLabel, fields.type);
+    form.append(typeGroup);
     fields.text = inputField(form, 'text', '問題文', true);
     const optionsGroup = element('fieldset', undefined, 'manual-choices');
+    fields.choicesGroup = optionsGroup;
     optionsGroup.append(element('legend', '選択肢・正解'));
     fields.choices = [];
     fields.answers = [];
@@ -216,7 +259,12 @@ const QuestionEditor = (() => {
       optionsGroup.append(row);
     }
     form.append(optionsGroup);
+    fields.modelGroup = element('div');
+    fields.modelGroup.id = 'manual-model-answer-group';
+    fields.modelAnswer = inputField(fields.modelGroup, 'model-answer', '模範解答', true);
+    form.append(fields.modelGroup);
     fields.explanation = inputField(form, 'explanation', '解説（任意）', true);
+    fields.explanationLabel = labels.explanation;
     fields.source = inputField(form, 'source', '出典の資料名（任意）');
     fields.location = inputField(form, 'location', '出典のページ・箇所（任意）');
     fields.error = element('p', '', 'error-list');
@@ -250,6 +298,7 @@ const QuestionEditor = (() => {
     busy = false;
     if (!fields || !container) return;
     fields.subject.value = '';
+    fields.type.value = '選択肢';
     clearQuestion();
     error('');
     renderList();

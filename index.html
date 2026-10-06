@@ -170,6 +170,11 @@
   .preview-question { border-top: 1px solid var(--border); padding: .8rem 0; overflow-wrap: anywhere; }
   .preview-question ol { padding-left: 1.6rem; }
   .preview-answer { color: var(--correct); font-weight: 600; }
+  .written-copy, .written-detail, .preview-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .written-copy { color: var(--fg); }
+  .written-detail { padding: 1rem; background: var(--inset); border-radius: 12px; margin: .75rem 0; }
+  #written-tools .actions a { min-height: 44px; display: inline-flex; align-items: center; padding: .5rem; }
+  #written-status { min-height: 1.5em; }
   #file-name, #preview-subject, #preview-history, #preview-sources, #delete-description { overflow-wrap: anywhere; }
   #pack-preview { border-color: var(--correct); }
   .subject-card { overflow-wrap: anywhere; background: var(--surface); }
@@ -326,6 +331,7 @@
           <h2 class="start-heading"><span class="step-number" aria-hidden="true">02</span>問題数を選んで開始</h2>
           <div id="sizes"></div>
           <p id="start-note" class="muted"></p>
+          <button type="button" id="resume-written" hidden>記述の続きを開く</button>
         </div>
       </div>
     </div>
@@ -361,7 +367,14 @@ B. dog
 正解：B
 解説：犬はdog、猫はcatです。
 出典：動作確認用サンプル
-出典箇所：問2</pre>
+出典箇所：問2
+
+問3：1 + 1 が2になることを、物を数える例で説明してください。
+問題形式：記述
+模範解答：りんご1個にもう1個を加えると、全部で2個になる。
+解説：同じ種類の物を1個ずつ合わせ、合計が2個になる例を示す。
+出典：動作確認用サンプル
+出典箇所：問3</pre>
         <button type="button" id="download-text-template">テキストの見本を保存</button>
       </details>
       <details id="paste-pack"><summary>貼り付ける・読み込んだ本文を確認</summary>
@@ -419,6 +432,29 @@ B. dog
     <progress id="session-progress" value="0" max="1" aria-label="回答した問題数"></progress>
     <p id="question-text" tabindex="-1"></p>
     <ul id="choices"></ul>
+    <section id="written-tools" hidden aria-label="記述の解答">
+      <label class="field-label" for="written-response">あなたの解答</label>
+      <textarea id="written-response" rows="6" maxlength="10000"></textarea>
+      <p id="written-status" class="muted" role="status" aria-live="polite"></p>
+      <div id="written-transfer">
+        <div class="actions">
+          <button type="button" id="copy-written" class="primary">採点用にコピー</button>
+          <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPT</a>
+          <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
+        </div>
+        <p class="muted">自分のAIに貼り付けて採点。戻ったら結果を下に貼り付けます。</p>
+        <details id="written-prompt-panel" hidden><summary>コピーする内容</summary>
+          <textarea id="written-prompt" readonly rows="6" aria-label="採点用の指示文"></textarea>
+        </details>
+        <details id="written-grade-panel"><summary>採点結果を貼り付ける</summary>
+          <label class="field-label" for="written-grade">AIが返したJSON</label>
+          <textarea id="written-grade" rows="5" maxlength="20000" spellcheck="false"></textarea>
+          <p class="muted">AIの評価は目安です。80点以上を正解として記録します。</p>
+          <button type="button" id="apply-written">結果を記録</button>
+        </details>
+      </div>
+      <div id="written-evaluation" hidden></div>
+    </section>
     <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
     <div class="importance-row">
       <span class="muted">重要度</span>
@@ -426,7 +462,7 @@ B. dog
     </div>
     <div class="actions"><button type="button" id="next" class="primary" hidden>次の問題へ</button>
       <button type="button" id="finish-session" class="link-button">ここまでで終了</button></div>
-    <p class="muted">回答は自動保存。解説は終了後に表示します。</p>
+    <p id="quiz-note" class="muted">回答は自動保存。解説は終了後に表示します。</p>
   </section>
 
   <section id="screen-result" hidden>
@@ -448,17 +484,18 @@ B. dog
 
 <!-- ?v= はキャッシュ対策。スクリプトを変更したら番号を上げる。 -->
 <script src="questions.js?v=20260922-legacy64"></script>
-<script src="question-packs.js?v=20260922-legacy64"></script>
+<script src="question-packs.js?v=20261006-written"></script>
 <script src="legacy-identities.js?v=20260922-legacy64"></script>
-<script src="storage.js?v=20260922-legacy64"></script>
-<script src="scheduler.js?v=20260922-legacy64"></script>
+<script src="storage.js?v=20261006-written"></script>
+<script src="scheduler.js?v=20261006-written"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
 <script src="vendor/fflate-0.8.2.js"></script>
 <script src="document-reader.js?v=20261006-import"></script>
-<script src="question-import.js?v=20261006-import"></script>
-<script src="question-editor.js?v=20261006-editor"></script>
-<script src="subject-manager.js?v=20261006-import"></script>
-<script src="app.js?v=20261006-compact"></script>
+<script src="question-import.js?v=20261006-written"></script>
+<script src="question-editor.js?v=20261006-written"></script>
+<script src="subject-manager.js?v=20261006-written"></script>
+<script src="written-practice.js?v=20261006-written"></script>
+<script src="app.js?v=20261006-written"></script>
 <script src="install-support.js"></script>
 </body>
 </html>

@@ -28,7 +28,7 @@ const Scheduler = (() => {
   const NEW_QUESTION_SHARE = 1 / 3;
 
   /** 出題形式。正誤形式は2択のため、箱を上げる条件が他と異なる。 */
-  const QUESTION_TYPES = ['選択肢', '正誤', '想起'];
+  const QUESTION_TYPES = ['選択肢', '正誤', '想起', '記述'];
   const QUESTION_TYPE_TRUE_FALSE = '正誤';
   /** 正誤形式で箱を1つ上げるのに必要な正解数。 */
   const TRUE_FALSE_CORRECT_TO_ADVANCE = 2;
@@ -173,7 +173,7 @@ const Scheduler = (() => {
    */
   function selectQuestions(questions, progressAll, count, now, subjects) {
     const entries = filterBySubjects(
-      questions.filter((question) => question.questionType === '選択肢' || question.questionType === '正誤').map((question) => ({
+      questions.filter((question) => question.questionType === '選択肢' || question.questionType === '正誤' || question.questionType === '記述').map((question) => ({
         question,
         progress: getProgress(progressAll, question),
       })),

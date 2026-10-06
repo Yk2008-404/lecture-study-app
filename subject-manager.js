@@ -115,7 +115,7 @@ const SubjectManager = (() => {
       const s = result.summary;
       const exists = app.builtIns.concat(imported).some((q) => q.subject === draft.subject);
       $('preview-subject').textContent = `${draft.subject} / ${exists ? '既存科目への追加' : '新規科目'}`;
-      $('preview-counts').textContent = `全 ${s.total} 問 / 選択肢 ${s.choice}・正誤 ${s.trueFalse}・想起（未対応）${s.recall} / 出題可能 ${s.playable} 問`;
+      $('preview-counts').textContent = `全 ${s.total} 問 / 選択肢 ${s.choice}・正誤 ${s.trueFalse}・記述 ${s.written || 0}・想起（未対応）${s.recall} / 出題可能 ${s.playable} 問`;
       $('preview-history').textContent = `旧学習履歴の継承対象：${result.reusedLegacyIds.length} 問。` +
         (result.restartedLegacyIds.length ? `形式変更により旧履歴を参照しない問題：${result.restartedLegacyIds.length} 問（${result.restartedLegacyIds.join('、')}）。旧データは削除しない。登録後の学習記録がなければ未学習から開始する。` : '') +
         '登録後に保存した学習記録は保持する。';
@@ -130,7 +130,7 @@ const SubjectManager = (() => {
         const choices = element('ol');
         q.choices.forEach((choice) => choices.append(element('li', choice)));
         item.append(choices);
-        item.append(element('p', `正解：${q.choices[q.answer]}`, 'preview-answer'));
+        item.append(element('p', q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${q.choices[q.answer]}`, 'preview-answer'));
         item.append(element('p', q.explanation || '解説なし'));
         item.append(element('p', `出典：${q.source.document} / ${q.source.location}`, 'result-source'));
         list.append(item);
