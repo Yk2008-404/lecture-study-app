@@ -98,6 +98,13 @@ async function startSession(count) {
   } finally { quizBusy = false; }
 }
 
+function renderSessionProgress() {
+  const progress = document.getElementById('session-progress');
+  if (!progress) return;
+  progress.max = state.questions.length;
+  progress.value = state.results.length;
+}
+
 async function renderQuestion() {
   const question = state.questions[state.index];
   state.answered = false;
@@ -114,6 +121,7 @@ async function renderQuestion() {
 
   document.getElementById('progress').textContent =
     `${state.index + 1} / ${state.questions.length} 問`;
+  renderSessionProgress();
   document.getElementById('question-subject').textContent = question.subject;
   document.getElementById('question-text').textContent = question.text;
 
@@ -158,6 +166,7 @@ async function answer(selected) {
     document.getElementById('retry-action').onclick = null;
     state.answered = true;
     state.results.push({ question, selected, isCorrect });
+    renderSessionProgress();
     document.querySelectorAll('#choices .choice').forEach((button, i) => {
       button.disabled = true;
       if (i === question.answer) button.classList.add('is-answer');
@@ -371,6 +380,16 @@ async function renderStartNote() {
   const progress = scope.map((question) => Scheduler.getProgress(progressAll, question));
   const newCount = progress.filter((p) => !p.lastAskedAt).length;
   const dueCount = progress.filter((p) => p.lastAskedAt && Scheduler.isDue(p, now)).length;
+
+  const stats = {
+    'stat-subjects': new Set(all.map((question) => question.subject)).size,
+    'stat-questions': scope.length,
+    'stat-review': dueCount,
+  };
+  Object.entries(stats).forEach(([id, count]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = String(count);
+  });
 
   document.getElementById('start-note').textContent =
     `出題可能 ${scope.length} 問 / 未出題 ${newCount} 問 / 復習時期 ${dueCount} 問` +

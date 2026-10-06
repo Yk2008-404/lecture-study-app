@@ -4,332 +4,288 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>学習アプリ</title>
-<meta name="theme-color" content="#2f6feb">
+<meta name="theme-color" content="#5253d9">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #ffffff;
-    --fg: #1a1a1a;
-    --muted: #6b6b6b;
-    --border: #d7d7d7;
-    --surface: #f6f6f6;
-    --accent: #2f6feb;
-    --correct: #1f7a3d;
-    --incorrect: #b3261e;
+    --bg: #f5f6fa; --fg: #23263d; --muted: #61687f; --border: #e2e5ee;
+    --surface: #ffffff; --inset: #f7f8fc; --accent: #5253d9; --accent-hover: #4142bb;
+    --accent-soft: #eeedff; --correct: #197653; --correct-soft: #eaf7f0;
+    --incorrect: #bd3c53; --incorrect-soft: #fff0f2; --on-accent: #ffffff;
+    --shadow: 0 8px 32px -20px #30375c35; --hero-paper: #fff;
   }
-
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1b1b1d;
-      --fg: #ececec;
-      --muted: #a0a0a0;
-      --border: #3a3a3d;
-      --surface: #26262a;
-      --accent: #6ea0ff;
-      --correct: #64c98a;
-      --incorrect: #ff8a80;
+      --bg: #151724; --fg: #eceef8; --muted: #a6adc6; --border: #33374e;
+      --surface: #202335; --inset: #191c2c; --accent: #a5a2ff; --accent-hover: #bfbdff;
+      --accent-soft: #302f50; --correct: #80ddb1; --correct-soft: #203f36;
+      --incorrect: #ff99aa; --incorrect-soft: #432834; --on-accent: #1b193b;
+      --shadow: 0 8px 32px -16px #0005; --hero-paper: #2a2e43;
     }
   }
-
   * { box-sizing: border-box; }
-
-  body {
-    margin: 0;
-    padding: 2rem 1rem;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
-    line-height: 1.7;
-  }
-
-  main {
-    max-width: 40rem;
-    margin: 0 auto;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-    margin: 0 0 .4rem;
-  }
-  .app-intro { margin: 0 0 1.6rem; color: var(--muted); }
-  .delivery-note { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-
-  h2 {
-    font-size: 1.1rem;
-    margin: 2rem 0 0.75rem;
-  }
-
+  [hidden] { display: none !important; }
+  html { scrollbar-gutter: stable; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 15px; line-height: 1.8; -webkit-font-smoothing: antialiased; }
+  button, input, textarea { font: inherit; }
+  button, a, input, summary { -webkit-tap-highlight-color: transparent; }
+  a { color: var(--accent); text-underline-offset: .2em; }
+  button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; max-width: 100%; padding: .68rem 1.12rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--fg); font-weight: 600; line-height: 1.5; cursor: pointer; transition: background .18s, border-color .18s, transform .18s, box-shadow .18s; }
+  button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+  main > section:focus { outline: none; }
+  .primary, #tutorial-start { background: var(--accent); color: var(--on-accent); border-color: var(--accent); box-shadow: 0 5px 15px -8px var(--accent); }
+  .primary:hover:not(:disabled), #tutorial-start:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .link-button { background: transparent; color: var(--muted); border-color: transparent; padding: .55rem .5rem; text-decoration: none; }
+  .link-button:hover:not(:disabled) { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+  .muted { color: var(--muted); font-size: .84rem; }
+  .eyebrow { display: block; color: var(--accent); font-size: .65rem; font-weight: 750; letter-spacing: .19em; line-height: 1.4; }
+  .app-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1120px; margin: 0 auto; padding: 1.6rem 0; border-bottom: 1px solid var(--border); }
+  .brand { display: flex; align-items: center; gap: .85rem; min-width: 0; }
+  .brand-mark { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; color: #fff; background: #5253d9; border-radius: 14px; box-shadow: 0 5px 15px -9px #5253d9; }
+  .brand h1 { font-size: 1.08rem; letter-spacing: .06em; margin: 0; line-height: 1.4; }
+  .brand-caption { display: block; margin-top: .2rem; font-size: .58rem; letter-spacing: .15em; color: var(--muted); }
+  .header-note { display: inline-flex; align-items: center; gap: .5rem; font-size: .75rem; color: var(--muted); }
+  .header-note::before { content: ''; width: 6px; height: 6px; background: var(--correct); border-radius: 50%; }
+  .page-shell { max-width: 1184px; margin: 0 auto; padding: 0 32px calc(2rem + env(safe-area-inset-bottom)); }
+  main { margin-top: 2.4rem; }
+  main > section:not([hidden]) { animation: appear .24s ease-out; }
+  h2 { font-size: 1.35rem; line-height: 1.5; letter-spacing: -.02em; margin: 1.8rem 0 .9rem; }
+  h3 { font-size: 1.05rem; margin: 0 0 .65rem; }
+  p { margin: .6rem 0; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  .welcome { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: .25rem .2rem 2.2rem; }
+  .welcome h2 { font-size: clamp(1.8rem, 3.7vw, 2.65rem); font-weight: 750; letter-spacing: -.035em; line-height: 1.5; margin: .7rem 0 .8rem; }
+  .welcome h2 span { color: var(--accent); }
+  .welcome-copy > p { color: var(--muted); font-size: .9rem; max-width: 30rem; }
+  .hero-art { width: 260px; flex: 0 0 260px; margin-right: 4rem; }
+  .hero-art svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 26px; }
+  .stat-card { display: flex; align-items: center; gap: 1rem; min-width: 0; padding: 1.15rem 1.35rem; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
+  .stat-icon { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; border-radius: 13px; color: var(--accent); background: var(--accent-soft); }
+  .stat-card:nth-child(2) .stat-icon { color: var(--correct); background: var(--correct-soft); }
+  .stat-card:nth-child(3) .stat-icon { color: #a46624; background: #fff3df; }
+  .stat-label { display: block; color: var(--muted); font-size: .73rem; line-height: 1.5; }
+  .stat-value { display: flex; align-items: baseline; gap: .4rem; line-height: 1.4; margin-top: .2rem; }
+  .stat-value strong { font-size: 1.65rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+  .stat-value span { color: var(--muted); font-size: .7rem; }
+  .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 272px; align-items: start; gap: 24px; }
+  .workspace-grid > *, .section-head > * { min-width: 0; }
+  .study-panel { border: 1px solid var(--border); border-radius: 22px; background: var(--surface); padding: 1.65rem; box-shadow: var(--shadow); }
+  .section-head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+  .section-head { justify-content: space-between; margin-bottom: 1.35rem; }
+  .section-head h2 { margin: 0; }
+  .start-heading { display: flex; align-items: center; gap: .65rem; font-size: .97rem; margin: 0; }
+  .step-number { display: grid; place-items: center; color: var(--accent); background: var(--accent-soft); border-radius: 8px; width: 27px; height: 27px; font-size: .68rem; letter-spacing: 0; }
+  #open-manager { color: var(--accent); background: var(--accent-soft); border-color: transparent; font-size: .78rem; min-height: 44px; padding: .55rem .7rem; }
+  #subjects { display: flex; flex-wrap: wrap; gap: .65rem; }
+  .subject { display: inline-flex; align-items: center; gap: .6rem; min-height: 48px; max-width: 100%; padding: .65rem .95rem; border: 1px solid var(--border); border-radius: 12px; background: var(--inset); cursor: pointer; overflow-wrap: anywhere; font-size: .88rem; }
+  .subject:hover { border-color: var(--accent); }
+  .subject.is-selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .subject input { margin: 0; flex: 0 0 17px; width: 17px; height: 17px; accent-color: var(--accent); }
+  #subject-selection-hint { margin: .7rem 0 0; font-size: .75rem; }
+  .session-settings { margin-top: 1.65rem; padding-top: 1.45rem; border-top: 1px solid var(--border); }
+  .session-settings .start-heading { margin-bottom: 1rem; }
+  #sizes { display: flex; flex-wrap: wrap; gap: .55rem; }
+  .size { flex: 1 1 82px; min-height: 57px; border-radius: 13px; color: var(--accent); background: var(--accent-soft); border-color: transparent; font-size: .95rem; font-variant-numeric: tabular-nums; }
+  .size:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); box-shadow: 0 7px 15px -10px var(--accent); }
+  #start-note { font-size: .73rem; margin: 1rem 0 0; }
+  .panel { padding: 1.25rem; border: 1px solid var(--border); border-radius: 16px; margin: 1rem 0; background: var(--inset); }
+  .panel h3 { margin: 0 0 .6rem; font-size: 1rem; }
+  .panel p { margin: .5rem 0; }
+  #empty-subjects { text-align: center; border: 1px dashed var(--border); background: var(--inset); padding: 2rem 1.25rem; margin: 0; }
+  .empty-icon { width: 62px; height: 62px; display: grid; place-items: center; margin: 0 auto 1rem; background: var(--surface); color: var(--accent); border: 1px solid var(--border); border-radius: 19px; transform: rotate(-5deg); }
+  #empty-title { font-size: 1.1rem; letter-spacing: -.02em; }
+  #empty-subjects > p { color: var(--muted); font-size: .8rem; max-width: 24rem; margin: .6rem auto; }
+  #empty-subjects > p:has(button) { margin: 1.2rem auto .8rem; }
+  #empty-subjects > .muted { font-size: .71rem; }
+  .study-aside { border-radius: 22px; padding: 1.5rem; background: var(--accent-soft); }
+  .study-aside h2 { margin: .65rem 0 1.4rem; font-size: 1.25rem; }
+  .flow-list { list-style: none; counter-reset: flow; padding: 0; margin: 0; }
+  .flow-list li { position: relative; counter-increment: flow; padding: 0 0 1.3rem 2.1rem; }
+  .flow-list li::before { content: counter(flow, decimal-leading-zero); position: absolute; top: .1rem; left: 0; color: var(--accent); font-size: .7rem; font-weight: 750; }
+  .flow-list strong { display: block; font-size: .83rem; font-weight: 650; }
+  .flow-list span { display: block; margin-top: .15rem; color: var(--muted); font-size: .74rem; line-height: 1.7; }
+  #show-tutorial { width: 100%; color: var(--accent); background: var(--surface); border: 1px solid var(--border); font-size: .8rem; margin-top: .25rem; }
+  #screen-manager, #screen-pack-help, #screen-tutorial, #screen-quiz, #screen-result { max-width: 880px; margin: 0 auto; border-radius: 24px; padding: 2rem; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+  #screen-quiz { max-width: 780px; padding: 2rem 2.3rem; }
+  #screen-quiz .section-head { gap: 1rem; margin-bottom: .9rem; }
+  #progress { margin: 0; font-size: .84rem; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+  #progress::before { content: 'QUESTION'; display: block; font-size: .57rem; letter-spacing: .16em; color: var(--muted); }
+  #question-subject { max-width: 65%; padding: .25rem .7rem; border-radius: 7px; background: var(--inset); font-size: .75rem; overflow-wrap: anywhere; }
+  #session-progress { display: block; appearance: none; -webkit-appearance: none; width: 100%; height: 5px; border: 0; border-radius: 5px; overflow: hidden; background: var(--border); margin: 0 0 2rem; accent-color: var(--accent); }
+  #session-progress::-webkit-progress-bar { background: var(--border); border-radius: 5px; }
+  #session-progress::-webkit-progress-value { background: var(--accent); border-radius: 5px; transition: width .25s; }
+  #session-progress::-moz-progress-bar { background: var(--accent); border-radius: 5px; }
   #question-text, .choice, .result-question, .result-explanation { overflow-wrap: anywhere; white-space: pre-wrap; }
-  .muted {
-    color: var(--muted);
-    font-size: 0.875rem;
-  }
-
-  #sizes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  }
-
-  .start-heading {
-    font-size: 0.875rem;
-    color: var(--muted);
-    font-weight: 600;
-    margin: 1.75rem 0 0.6rem;
-  }
-
-  .start-heading:first-child {
-    margin-top: 0;
-  }
-
-  #subjects {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 0.6rem;
-  }
-
-  .subject {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    background: var(--surface);
-    padding: 0.45rem 0.8rem;
-    cursor: pointer;
-  }
-
-  .subject:hover {
-    border-color: var(--accent);
-  }
-
-  .subject.is-selected {
-    border-color: var(--accent);
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .subject input {
-    margin: 0;
-    accent-color: var(--accent);
-  }
-
-  button {
-    font: inherit;
-    cursor: pointer;
-    border-radius: 0.5rem;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--fg);
-    padding: 0.6rem 1.2rem;
-  }
-
-  button:hover:not(:disabled) {
-    border-color: var(--accent);
-  }
-
-  .size {
-    min-width: 6rem;
-  }
-
-  #progress {
-    color: var(--muted);
-    font-size: 0.875rem;
-    margin: 0 0 0.5rem;
-  }
-
-  #question-text {
-    font-size: 1.2rem;
-    font-weight: 600;
-    margin: 0 0 1.25rem;
-  }
-
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  #choices li + li {
-    margin-top: 0.5rem;
-  }
-
-  .choice {
-    display: block;
-    width: 100%;
-    text-align: left;
-  }
-
-  .choice:disabled {
-    cursor: default;
-    opacity: 1;
-  }
-
-  .choice.is-answer {
-    border-color: var(--correct);
-    color: var(--correct);
-    font-weight: 600;
-  }
-
-  .choice.is-wrong {
-    border-color: var(--incorrect);
-    color: var(--incorrect);
-  }
-
-  .feedback {
-    min-height: 1.7em;
-    margin: 1rem 0;
-    font-weight: 600;
-  }
-
+  #question-text { font-size: clamp(1.1rem, 2.7vw, 1.35rem); line-height: 1.9; font-weight: 650; margin: 0 0 1.6rem; }
+  #choices { counter-reset: choice; }
+  #choices li { counter-increment: choice; }
+  #choices li + li { margin-top: .75rem; }
+  .choice { display: flex; align-items: flex-start; justify-content: flex-start; gap: .85rem; width: 100%; min-height: 64px; padding: .95rem 1rem; text-align: left; font-weight: 500; line-height: 1.8; background: var(--inset); border-radius: 14px; }
+  .choice::before { content: counter(choice, upper-alpha); display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: .75rem; font-weight: 650; line-height: 1; color: var(--muted); }
+  .choice:disabled { cursor: default; opacity: .6; }
+  .choice.is-answer, .choice.is-wrong { opacity: 1; font-weight: 600; }
+  .choice.is-answer { border-color: var(--correct); color: var(--correct); background: var(--correct-soft); }
+  .choice.is-answer::before { content: '✓'; color: var(--correct); border-color: var(--correct); }
+  .choice.is-wrong { border-color: var(--incorrect); color: var(--incorrect); background: var(--incorrect-soft); }
+  .choice.is-wrong::before { content: '×'; color: var(--incorrect); border-color: var(--incorrect); }
+  .feedback { min-height: 1.8em; margin: 1.05rem 0; font-weight: 650; font-size: .88rem; }
   .feedback.is-correct { color: var(--correct); }
   .feedback.is-incorrect { color: var(--incorrect); }
-
-  .importance-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 0 0 1.25rem;
-  }
-
-  #importance {
-    display: flex;
-    gap: 0.4rem;
-  }
-
-  .importance-button {
-    padding: 0.35rem 0.8rem;
-  }
-
-  .importance-button.is-selected {
-    border-color: var(--accent);
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  #score {
-    font-size: 1.2rem;
-    font-weight: 600;
-  }
-
-  #wrong-list li,
-  #correct-list li {
-    border-top: 1px solid var(--border);
-    padding: 0.75rem 0;
-  }
-
-  .result-question {
-    margin: 0 0 0.25rem;
-  }
-
-  .result-detail {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.875rem;
-  }
-
-  .link-button {
-    background: none;
-    border: none;
-    color: var(--muted);
-    padding: 0.3rem 0;
-    text-decoration: underline;
-  }
-
-  .link-button:hover:not(:disabled) {
-    color: var(--accent);
-    border-color: transparent;
-  }
-
-  .tutorial-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .tutorial-head h2 {
-    margin: 0;
-  }
-
-  #screen-tutorial h3 {
-    font-size: 1rem;
-    margin: 1.75rem 0 0.4rem;
-  }
-
-  #screen-tutorial p {
-    margin: 0 0 0.5rem;
-  }
-
-  .tutorial-list {
-    list-style: disc;
-    padding-left: 1.25rem;
-    margin: 0 0 0.5rem;
-  }
-
-  .tutorial-list li + li {
-    margin-top: 0.25rem;
-  }
-
-  .tutorial-actions {
-    margin-top: 2rem;
-  }
-
-  .result-explanation {
-    margin: 0.5rem 0 0;
-    padding-left: 0.75rem;
-    border-left: 2px solid var(--border);
-    font-size: 0.9375rem;
-  }
-
-  [hidden] { display: none !important; }
-  button:disabled { opacity: .5; cursor: not-allowed; }
-  a { color: var(--accent); }
-  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-  .section-head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
-  .section-head { justify-content: space-between; margin-bottom: 1rem; }
-  .section-head h2 { margin: 0; }
-  .primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
-  .panel { padding: 1rem; border: 1px solid var(--border); border-radius: .75rem; margin: 1rem 0; background: var(--surface); }
-  .panel h3 { margin: 0 0 .6rem; font-size: 1rem; }
-  .panel p { margin: .45rem 0; }
-  textarea, input[type="file"] { max-width: 100%; font: inherit; }
-  textarea { display: block; width: 100%; resize: vertical; min-height: 12rem; padding: .8rem; border: 1px solid var(--border); border-radius: .5rem; color: var(--fg); background: var(--bg); }
-  .code-input { font: .85rem/1.65 ui-monospace, Consolas, monospace; }
-  .field-label { display: block; font-weight: 600; margin: .6rem 0; }
-  pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .82rem/1.7 ui-monospace, Consolas, monospace; max-height: 28rem; overflow: auto; padding: .8rem; background: var(--surface); border-radius: .5rem; }
-  details { margin: .6rem 0; }
-  summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
-  .notice { border: 1px solid var(--accent); border-radius: .5rem; padding: .8rem; margin: 1rem 0; overflow-wrap: anywhere; }
-  .notice.is-error { border-color: var(--incorrect); }
+  .importance-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin: 0 0 1.45rem; padding: 1.1rem 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  #importance { display: flex; flex-wrap: wrap; gap: .3rem; padding: .25rem; border-radius: 12px; background: var(--inset); }
+  .importance-button { min-height: 44px; padding: .35rem .85rem; border-color: transparent; background: transparent; color: var(--muted); font-size: .79rem; }
+  .importance-button.is-selected { background: var(--surface); color: var(--accent); border-color: var(--border); box-shadow: 0 2px 5px #00000008; }
+  #screen-quiz > .actions { justify-content: space-between; }
+  #next { min-width: 160px; }
+  #screen-quiz > .muted { margin-top: 1.3rem; font-size: .72rem; }
+  #score { padding: 1.7rem 1rem; margin: 1.4rem 0 0; border-radius: 18px; background: var(--accent-soft); color: var(--accent); text-align: center; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 750; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  #result-note { color: var(--muted); font-size: .83rem; text-align: center; margin: 1rem 0 2rem; }
+  #wrong-heading, #correct-heading { font-size: .94rem; }
+  #wrong-heading { color: var(--incorrect); }
+  #correct-heading { color: var(--correct); }
+  #wrong-list li, #correct-list li { border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; margin-bottom: .85rem; }
+  .result-question { margin: 0 0 .6rem; font-weight: 650; }
+  .result-detail { margin: 0; color: var(--incorrect); font-size: .84rem; overflow-wrap: anywhere; }
+  .result-explanation { margin: .85rem 0 0; padding: .85rem 1rem; border-radius: 10px; font-size: .88rem; background: var(--inset); }
+  .result-source { margin: .7rem 0 0; color: var(--muted); font-size: .72rem; overflow-wrap: anywhere; }
+  #open-pack-help { color: var(--accent); background: var(--accent-soft); border-radius: 11px; padding: .65rem 1rem; margin: .7rem 0; }
+  #screen-manager > .panel:first-of-type { background: var(--inset); border-style: dashed; padding: 1.5rem; }
+  textarea, input[type='file'] { width: 100%; max-width: 100%; min-width: 0; font-size: 16px; }
+  input[type='file'] { color: var(--muted); font-size: .85rem; padding: .5rem 0; }
+  input[type='file']::file-selector-button { font: inherit; font-weight: 600; padding: .7rem .9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--fg); margin-right: .75rem; cursor: pointer; }
+  textarea { display: block; resize: vertical; min-height: 12rem; padding: 1rem; border: 1px solid var(--border); border-radius: 12px; color: var(--fg); background: var(--surface); }
+  .code-input { font: 16px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; }
+  .field-label { display: block; font-weight: 600; margin: .5rem 0 .7rem; font-size: .86rem; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .8rem/1.9 ui-monospace, Consolas, monospace; max-height: 28rem; overflow: auto; padding: 1rem; background: var(--inset); border-radius: 12px; }
+  details { margin: .8rem 0; padding: .3rem 0; }
+  summary { cursor: pointer; font-weight: 600; font-size: .86rem; overflow-wrap: anywhere; padding: .5rem 0; min-height: 44px; }
+  .notice { max-width: 880px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); padding: .85rem 1.1rem; margin: 0 auto 1.4rem; overflow-wrap: anywhere; font-size: .86rem; }
+  .notice.is-error { border-color: var(--incorrect); background: var(--incorrect-soft); }
   .error-list { list-style: disc; padding-left: 1.25rem; color: var(--incorrect); }
   .error-list li { margin-bottom: .5rem; overflow-wrap: anywhere; }
-  .preview-question { border-top: 1px solid var(--border); padding: .6rem 0; overflow-wrap: anywhere; }
+  .preview-question { border-top: 1px solid var(--border); padding: .8rem 0; overflow-wrap: anywhere; }
   .preview-question ol { padding-left: 1.6rem; }
   .preview-answer { color: var(--correct); font-weight: 600; }
-  .subject-card { overflow-wrap: anywhere; }
-  .subject-card .actions { margin-top: .8rem; }
-  .export-scope { font-size: .85rem; color: var(--muted); }
+  #file-name, #preview-subject, #preview-history, #preview-sources, #delete-description { overflow-wrap: anywhere; }
+  #pack-preview { border-color: var(--correct); }
+  .subject-card { overflow-wrap: anywhere; background: var(--surface); }
+  .subject-card .actions { margin-top: 1rem; }
+  .export-scope { font-size: .8rem; color: var(--muted); }
   .danger { color: var(--incorrect); }
-  .result-source { margin: .5rem 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
-  dialog { width: min(34rem, calc(100vw - 2rem)); max-height: calc(100vh - 3rem); overflow: auto; padding: 1.5rem; border: 1px solid var(--border); border-radius: .8rem; color: var(--fg); background: var(--bg); }
-  dialog::backdrop { background: #0008; }
+  .tutorial-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; }
+  .tutorial-head h2 { margin: 0; }
+  #screen-tutorial h3 { font-size: 1rem; margin: 1.8rem 0 .5rem; }
+  #screen-tutorial p { font-size: .9rem; }
+  .tutorial-list { list-style: disc; padding-left: 1.3rem; color: var(--muted); font-size: .88rem; }
+  .tutorial-list li + li { margin-top: .4rem; }
+  .tutorial-actions { margin-top: 2rem !important; }
+  dialog { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 3rem); overflow: auto; padding: 1.8rem; border: 1px solid var(--border); border-radius: 22px; color: var(--fg); background: var(--surface); box-shadow: 0 24px 100px #0003; }
+  dialog::backdrop { background: #10142a80; backdrop-filter: blur(4px); }
   dialog h2 { margin-top: 0; }
-  .delete-choice { display: flex; align-items: flex-start; gap: .5rem; margin: 1rem 0; }
-  .delete-choice input { margin-top: .5rem; }
-  @media (max-width: 440px) { body { padding: 1.2rem .8rem; } .actions button { padding: .6rem .8rem; } .panel { padding: .8rem; } }
+  .delete-choice { display: flex; align-items: flex-start; gap: .7rem; margin: 1.2rem 0; overflow-wrap: anywhere; }
+  .delete-choice input { flex: 0 0 18px; width: 18px; height: 18px; margin-top: .4rem; }
+  .delivery-note { color: var(--muted); margin-top: 2.2rem; padding-top: 1.3rem; border-top: 1px solid var(--border); text-align: center; }
+  .delivery-note p { font-size: .69rem; line-height: 1.8; margin: .3rem 0; }
+  .delivery-note p:empty { display: none; }
+  @keyframes appear { from { opacity: .4; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 900px) {
+    .hero-art { margin-right: 0; width: 220px; flex-basis: 220px; }
+    .workspace-grid { grid-template-columns: minmax(0, 1fr) 235px; gap: 18px; }
+    .study-panel { padding: 1.25rem; }
+    .study-aside { padding: 1.25rem; }
+    .stat-card { padding: 1rem; gap: .75rem; }
+  }
+  @media (max-width: 700px) {
+    .page-shell { padding-left: 20px; padding-right: 20px; }
+    .app-header { padding: 1.15rem 0; }
+    .header-note { display: none; }
+    main { margin-top: 1.7rem; }
+    .welcome { gap: 1rem; padding-bottom: 1.5rem; }
+    .hero-art { width: 142px; flex-basis: 142px; }
+    .welcome h2 { font-size: 1.85rem; }
+    .welcome-copy > p { font-size: .79rem; }
+    .workspace-grid { grid-template-columns: minmax(0, 1fr); }
+    .study-aside { padding: 1.25rem 1.5rem; }
+    .study-aside h2 { font-size: 1.1rem; margin-bottom: 1rem; }
+    .flow-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+    .flow-list li { padding: 1.5rem 0 .7rem; }
+    .flow-list li::before { top: 0; }
+    #show-tutorial { margin-top: .7rem; }
+    .stats-grid { gap: 10px; margin-bottom: 18px; }
+    .stat-card { display: block; padding: .85rem .9rem; border-radius: 15px; }
+    .stat-icon { width: 32px; height: 32px; margin-bottom: .65rem; border-radius: 9px; }
+    .stat-icon svg { width: 17px; height: 17px; }
+    .stat-value strong { font-size: 1.45rem; }
+    .stat-label { font-size: .65rem; }
+    #screen-manager, #screen-pack-help, #screen-tutorial, #screen-quiz, #screen-result { padding: 1.4rem; border-radius: 20px; }
+  }
+  @media (max-width: 440px) {
+    .page-shell { padding-left: 14px; padding-right: 14px; }
+    .brand-mark { width: 38px; height: 38px; border-radius: 12px; }
+    .brand { gap: .6rem; }
+    .brand h1 { font-size: 1rem; }
+    .header-note { font-size: .65rem; }
+    .welcome { align-items: flex-start; position: relative; }
+    .welcome-copy { position: relative; z-index: 1; }
+    .welcome h2 { font-size: 1.75rem; }
+    .welcome-copy > p { max-width: 235px; }
+    .hero-art { position: absolute; width: 103px; right: -2px; top: 17px; opacity: .85; }
+    .welcome-copy .eyebrow { font-size: .57rem; }
+    .stats-grid { gap: 8px; }
+    .stat-card { padding: .8rem .65rem; }
+    .stat-value { gap: .2rem; }
+    .stat-value strong { font-size: 1.35rem; }
+    .stat-value span { font-size: .62rem; }
+    .study-panel { padding: 1.1rem; border-radius: 18px; }
+    .section-head { align-items: flex-start; }
+    .section-head h2 { font-size: 1.15rem; }
+    .section-head .start-heading { font-size: .87rem; }
+    #open-manager { font-size: .71rem; padding: .55rem .6rem; min-height: 44px; }
+    .step-number { width: 24px; height: 24px; font-size: .6rem; }
+    #empty-subjects { padding: 1.5rem .8rem; }
+    .size { flex-basis: 68px; min-height: 52px; padding: .6rem .55rem; }
+    #screen-manager, #screen-pack-help, #screen-tutorial, #screen-quiz, #screen-result { padding: 1.15rem; }
+    #session-progress { margin-bottom: 1.5rem; }
+    .choice { padding: .85rem .75rem; gap: .65rem; font-size: .88rem; }
+    .choice::before { flex-basis: 26px; width: 26px; height: 26px; }
+    #question-subject { max-width: 62%; }
+    .panel { padding: 1rem; }
+    #screen-manager > .panel:first-of-type { padding: 1rem; }
+    .importance-row { justify-content: flex-start; }
+    .importance-button { padding: .35rem .65rem; }
+    .flow-list { display: block; }
+    .flow-list li { padding: 0 0 1rem 2rem; }
+    .flow-list li::before { top: .1rem; }
+    .actions button { flex-grow: 1; }
+    #wrong-list li, #correct-list li { padding: 1rem; }
+    dialog { padding: 1.25rem; }
+  }
+  @media (max-width: 360px) {
+    .hero-art { display: none; }
+    .header-note { display: none; }
+    .section-head { gap: .85rem; }
+    #open-manager { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
 <body>
+<div class="page-shell">
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path d="M12 6v14M6 9h2m-2 4h2m8-4h2m-2 4h2"/></svg></span>
+    <div><h1>学習アプリ</h1><span class="brand-caption">YOUR PERSONAL STUDY SPACE</span></div>
+  </div>
+  <span class="header-note">少しずつ、自分のペースで</span>
+</header>
 <main>
-  <h1>学習アプリ</h1>
-  <p class="app-intro">講義で学んだことを、くり返し確かめる。</p>
   <div id="app-notice" class="notice" role="status" aria-live="polite" hidden>
     <p id="notice-text"></p>
     <button type="button" id="retry-action" hidden>再試行</button>
@@ -374,22 +330,64 @@
   </section>
 
   <section id="screen-start">
-    <div class="section-head"><h2 class="start-heading">科目</h2>
-      <button type="button" id="open-manager">科目を追加・管理</button>
+    <div class="welcome">
+      <div class="welcome-copy">
+        <span class="eyebrow">A LITTLE EVERY DAY</span>
+        <h2>今日の学びを、<br><span>確かな知識に。</span></h2>
+        <p>少しずつ、何度でも。<br>講義の内容を、あなたのペースで復習しましょう。</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <svg viewBox="0 0 260 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="142" cy="190" rx="91" ry="10" fill="var(--border)" opacity=".55"/>
+          <rect x="61" y="32" width="139" height="158" rx="17" transform="rotate(9 61 32)" fill="var(--accent-soft)" stroke="var(--border)"/>
+          <rect x="54" y="22" width="141" height="160" rx="16" transform="rotate(-7 54 22)" fill="var(--hero-paper)" stroke="var(--border)" stroke-width="1.5"/>
+          <path d="M73 46l23-3m-20 12 40-5" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+          <rect x="78" y="76" width="16" height="16" rx="5" transform="rotate(-7 78 76)" fill="var(--accent-soft)"/>
+          <path d="m82 82 4 3 5-7M82 114l4 3 5-7" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="m106 78 55-7m-54 16 42-5m-38 26 55-7m-54 16 36-4m-49 35 56-7" stroke="var(--border)" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="195" cy="149" r="28" fill="var(--correct-soft)" stroke="var(--surface)" stroke-width="6"/>
+          <path d="m185 149 7 7 13-14" stroke="var(--correct)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M26 82h12m-6-6v12M211 39h10m-5-5v10" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+          <circle cx="43" cy="154" r="4" fill="var(--accent-soft)"/><circle cx="231" cy="94" r="4" fill="var(--correct)" opacity=".45"/>
+        </svg>
+      </div>
     </div>
-    <section id="empty-subjects" class="panel" aria-labelledby="empty-title" hidden>
-      <h3 id="empty-title">まだ科目が登録されていない</h3>
-      <p>このアプリには問題が組み込まれていない。JSONの問題セットを追加して、学習を始めよう。</p>
-      <p><button type="button" id="empty-add-subject" class="primary">最初の科目を追加する</button></p>
-      <p class="muted">用意した科目JSONを選ぶだけで追加できます。問題と学習履歴は、このブラウザに保存されます。</p>
-    </section>
-    <div id="subjects" role="group" aria-label="科目"></div>
-    <p id="subject-selection-hint" class="muted">科目を選ばない場合は全科目から出題します。</p>
-
-    <h2 class="start-heading">出題数</h2>
-    <div id="sizes"></div>
-    <p id="start-note" class="muted"></p>
-    <p><button type="button" id="show-tutorial" class="link-button">使い方を見る</button></p>
+    <div class="stats-grid" aria-label="選択範囲の学習状況">
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 5h6l2 2h8v13H4Z"/><path d="M4 10h16"/></svg></span><div><span class="stat-label">学習する科目</span><div class="stat-value"><strong id="stat-subjects">0</strong><span>科目</span></div></div></div>
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6m-6 4h6m-6 4h3"/></svg></span><div><span class="stat-label">出題できる問題</span><div class="stat-value"><strong id="stat-questions">0</strong><span>問</span></div></div></div>
+      <div class="stat-card"><span class="stat-icon" aria-hidden="true"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a8 8 0 1 1 2 6M4 5v6h6"/><path d="M12 7v5l3 2"/></svg></span><div><span class="stat-label">復習のタイミング</span><div class="stat-value"><strong id="stat-review">0</strong><span>問</span></div></div></div>
+    </div>
+    <div class="workspace-grid">
+      <div class="study-panel">
+        <div class="section-head"><h2 class="start-heading"><span class="step-number" aria-hidden="true">01</span>科目を選ぶ</h2>
+          <button type="button" id="open-manager">＋ 科目を追加・管理</button>
+        </div>
+        <section id="empty-subjects" class="panel" aria-labelledby="empty-title" hidden>
+          <span class="empty-icon" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Z"/><path d="M12 6v14"/></svg></span>
+          <h3 id="empty-title">最初の科目を追加しよう</h3>
+          <p>講義の問題セットを読み込めば、<br>ここがあなたの学習スペースになります。</p>
+          <p><button type="button" id="empty-add-subject" class="primary">＋ 最初の科目を追加する</button></p>
+          <p class="muted">ClaudeやChatGPTで作った科目JSONを追加できます。</p>
+        </section>
+        <div id="subjects" role="group" aria-label="科目"></div>
+        <p id="subject-selection-hint" class="muted">科目を選ばない場合は全科目から出題します。</p>
+        <div class="session-settings">
+          <h2 class="start-heading"><span class="step-number" aria-hidden="true">02</span>問題数を選んで、スタート</h2>
+          <div id="sizes"></div>
+          <p id="start-note" class="muted"></p>
+        </div>
+      </div>
+      <aside class="study-aside" aria-label="学習の流れ">
+        <span class="eyebrow">HOW IT WORKS</span>
+        <h2>くり返すたび、<br>少しずつ身につく。</h2>
+        <ol class="flow-list">
+          <li><strong>科目を追加</strong><span>講義から作った問題セットを読み込みます。</span></li>
+          <li><strong>自分のペースで解く</strong><span>問題数と重点を選んで、無理なく復習。</span></li>
+          <li><strong>解説で振り返る</strong><span>まちがえた問題から、理解を深めます。</span></li>
+        </ol>
+        <button type="button" id="show-tutorial">使い方を詳しく見る ↗</button>
+      </aside>
+    </div>
   </section>
 
   <section id="screen-manager" hidden aria-labelledby="manager-title">
@@ -454,6 +452,7 @@
 
   <section id="screen-quiz" hidden>
     <div class="section-head"><p id="progress"></p><span id="question-subject" class="muted"></span></div>
+    <progress id="session-progress" value="0" max="1" aria-label="回答した問題数"></progress>
     <p id="question-text" tabindex="-1"></p>
     <ul id="choices"></ul>
     <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
@@ -481,6 +480,7 @@
     <p id="offline-status" class="muted" role="status"></p>
   </footer>
 </main>
+</div>
 
 <!-- ?v= はキャッシュ対策。スクリプトを変更したら番号を上げる。 -->
 <script src="questions.js?v=20260922-legacy64"></script>
@@ -490,7 +490,7 @@
 <script src="scheduler.js?v=20260922-legacy64"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
 <script src="subject-manager.js?v=20260923-exam"></script>
-<script src="app.js?v=20260923-exam"></script>
+<script src="app.js?v=20261006-modern"></script>
 <script src="install-support.js"></script>
 </body>
 </html>
