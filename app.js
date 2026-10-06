@@ -50,6 +50,12 @@ function updateDesktopControls() {
   if (login) { login.hidden = !provider?.installed || !!provider?.loggedIn; login.disabled = operating; }
   if (refresh) refresh.disabled = !!desktopOperation;
   if (cancel) { cancel.hidden = !operating || desktopOperation === 'saving'; cancel.disabled = desktopOperation === 'cancel'; }
+  // Claude's login page may show a code to paste back instead of finishing automatically.
+  const codeRow = document.getElementById('desktop-ai-code-row');
+  if (codeRow) {
+    codeRow.hidden = !(desktopOperation === 'login' && desktopProvider === 'claude');
+    if (codeRow.hidden) document.getElementById('desktop-ai-code').value = '';
+  }
   const grade = document.getElementById('grade-written');
   const savedResult = !!document.getElementById('written-grade')?.value.trim();
   if (grade) {
@@ -809,6 +815,17 @@ document.getElementById('desktop-ai-refresh')?.addEventListener('click', safeAct
 document.getElementById('desktop-ai-install')?.addEventListener('click', () => setupDesktopProvider('install'));
 document.getElementById('desktop-ai-login')?.addEventListener('click', () => setupDesktopProvider('login'));
 document.getElementById('desktop-ai-cancel')?.addEventListener('click', cancelDesktopOperation);
+document.getElementById('desktop-ai-code-submit')?.addEventListener('click', async () => {
+  const input = document.getElementById('desktop-ai-code');
+  if (!desktopBridge || desktopOperation !== 'login' || !input?.value.trim()) return;
+  const button = document.getElementById('desktop-ai-code-submit');
+  if (button.disabled) return;
+  button.disabled = true;
+  const code = input.value.trim(); input.value = '';
+  try { await desktopBridge.submitLoginCode(code); }
+  catch (error) { desktopMessage(error.message || '認証コードを送信できませんでした。'); }
+  finally { button.disabled = false; }
+});
 SubjectManager.initialize({ showScreen, renderStart, refreshQuestions, notify, safeAction, builtIns: QUESTIONS });
 window.addEventListener('storage', safeAction(async (event) => {
   if (!Storage.isStorageKey(event.key)) return;

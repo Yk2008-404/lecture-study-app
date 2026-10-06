@@ -1,0 +1,27 @@
+{
+  "version": "1.0.1",
+  "release_url": "https://github.com/Yk2008-404/lecture-study-app/releases/tag/v1.0.1",
+  "assets": [
+    {
+      "platform": "windows",
+      "file": "StudyApp-1.0.1-Windows-Setup.exe",
+      "bytes": 111260799,
+      "sha256": "fbae06522a03955edbaa7afec3919e22ada81daa3c0ecd3908e001b377e9048d",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.0.1/StudyApp-1.0.1-Windows-Setup.exe"
+    },
+    {
+      "platform": "mac-arm64",
+      "file": "StudyApp-1.0.1-Mac-arm64.dmg",
+      "bytes": 126448754,
+      "sha256": "df74eb93dd06d38fa2ebcc0ba7f786753457f6e230df76c59b0f666e5514a8f6",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.0.1/StudyApp-1.0.1-Mac-arm64.dmg"
+    },
+    {
+      "platform": "mac-x64",
+      "file": "StudyApp-1.0.1-Mac-x64.dmg",
+      "bytes": 133419831,
+      "sha256": "e2309217070994bc6a744ea6151cbf2c151149abeac141c6b0ba7a174881e544",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.0.1/StudyApp-1.0.1-Mac-x64.dmg"
+    }
+  ]
+}
