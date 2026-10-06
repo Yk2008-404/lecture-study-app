@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>学習アプリ</title>
+<meta name="theme-color" content="#2f6feb">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #d7d7d7;
+    --surface: #f6f6f6;
+    --accent: #2f6feb;
+    --correct: #1f7a3d;
+    --incorrect: #b3261e;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1b1d;
+      --fg: #ececec;
+      --muted: #a0a0a0;
+      --border: #3a3a3d;
+      --surface: #26262a;
+      --accent: #6ea0ff;
+      --correct: #64c98a;
+      --incorrect: #ff8a80;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 2rem 1rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.7;
+  }
+
+  main {
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 .4rem;
+  }
+  .app-intro { margin: 0 0 1.6rem; color: var(--muted); }
+  .delivery-note { margin-top: 2.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 2rem 0 0.75rem;
+  }
+
+  #question-text, .choice, .result-question, .result-explanation { overflow-wrap: anywhere; white-space: pre-wrap; }
+  .muted {
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  #sizes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .start-heading {
+    font-size: 0.875rem;
+    color: var(--muted);
+    font-weight: 600;
+    margin: 1.75rem 0 0.6rem;
+  }
+
+  .start-heading:first-child {
+    margin-top: 0;
+  }
+
+  #subjects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .subject {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+    padding: 0.45rem 0.8rem;
+    cursor: pointer;
+  }
+
+  .subject:hover {
+    border-color: var(--accent);
+  }
+
+  .subject.is-selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .subject input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--fg);
+    padding: 0.6rem 1.2rem;
+  }
+
+  button:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+
+  .size {
+    min-width: 6rem;
+  }
+
+  #progress {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin: 0 0 0.5rem;
+  }
+
+  #question-text {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 1.25rem;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  #choices li + li {
+    margin-top: 0.5rem;
+  }
+
+  .choice {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+
+  .choice:disabled {
+    cursor: default;
+    opacity: 1;
+  }
+
+  .choice.is-answer {
+    border-color: var(--correct);
+    color: var(--correct);
+    font-weight: 600;
+  }
+
+  .choice.is-wrong {
+    border-color: var(--incorrect);
+    color: var(--incorrect);
+  }
+
+  .feedback {
+    min-height: 1.7em;
+    margin: 1rem 0;
+    font-weight: 600;
+  }
+
+  .feedback.is-correct { color: var(--correct); }
+  .feedback.is-incorrect { color: var(--incorrect); }
+
+  .importance-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 1.25rem;
+  }
+
+  #importance {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .importance-button {
+    padding: 0.35rem 0.8rem;
+  }
+
+  .importance-button.is-selected {
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  #score {
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  #wrong-list li,
+  #correct-list li {
+    border-top: 1px solid var(--border);
+    padding: 0.75rem 0;
+  }
+
+  .result-question {
+    margin: 0 0 0.25rem;
+  }
+
+  .result-detail {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .link-button {
+    background: none;
+    border: none;
+    color: var(--muted);
+    padding: 0.3rem 0;
+    text-decoration: underline;
+  }
+
+  .link-button:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: transparent;
+  }
+
+  .tutorial-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .tutorial-head h2 {
+    margin: 0;
+  }
+
+  #screen-tutorial h3 {
+    font-size: 1rem;
+    margin: 1.75rem 0 0.4rem;
+  }
+
+  #screen-tutorial p {
+    margin: 0 0 0.5rem;
+  }
+
+  .tutorial-list {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin: 0 0 0.5rem;
+  }
+
+  .tutorial-list li + li {
+    margin-top: 0.25rem;
+  }
+
+  .tutorial-actions {
+    margin-top: 2rem;
+  }
+
+  .result-explanation {
+    margin: 0.5rem 0 0;
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--border);
+    font-size: 0.9375rem;
+  }
+
+  [hidden] { display: none !important; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .section-head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+  .section-head { justify-content: space-between; margin-bottom: 1rem; }
+  .section-head h2 { margin: 0; }
+  .primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+  .panel { padding: 1rem; border: 1px solid var(--border); border-radius: .75rem; margin: 1rem 0; background: var(--surface); }
+  .panel h3 { margin: 0 0 .6rem; font-size: 1rem; }
+  .panel p { margin: .45rem 0; }
+  textarea, input[type="file"] { max-width: 100%; font: inherit; }
+  textarea { display: block; width: 100%; resize: vertical; min-height: 12rem; padding: .8rem; border: 1px solid var(--border); border-radius: .5rem; color: var(--fg); background: var(--bg); }
+  .code-input { font: .85rem/1.65 ui-monospace, Consolas, monospace; }
+  .field-label { display: block; font-weight: 600; margin: .6rem 0; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; font: .82rem/1.7 ui-monospace, Consolas, monospace; max-height: 28rem; overflow: auto; padding: .8rem; background: var(--surface); border-radius: .5rem; }
+  details { margin: .6rem 0; }
+  summary { cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+  .notice { border: 1px solid var(--accent); border-radius: .5rem; padding: .8rem; margin: 1rem 0; overflow-wrap: anywhere; }
+  .notice.is-error { border-color: var(--incorrect); }
+  .error-list { list-style: disc; padding-left: 1.25rem; color: var(--incorrect); }
+  .error-list li { margin-bottom: .5rem; overflow-wrap: anywhere; }
+  .preview-question { border-top: 1px solid var(--border); padding: .6rem 0; overflow-wrap: anywhere; }
+  .preview-question ol { padding-left: 1.6rem; }
+  .preview-answer { color: var(--correct); font-weight: 600; }
+  .subject-card { overflow-wrap: anywhere; }
+  .subject-card .actions { margin-top: .8rem; }
+  .export-scope { font-size: .85rem; color: var(--muted); }
+  .danger { color: var(--incorrect); }
+  .result-source { margin: .5rem 0 0; color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+  dialog { width: min(34rem, calc(100vw - 2rem)); max-height: calc(100vh - 3rem); overflow: auto; padding: 1.5rem; border: 1px solid var(--border); border-radius: .8rem; color: var(--fg); background: var(--bg); }
+  dialog::backdrop { background: #0008; }
+  dialog h2 { margin-top: 0; }
+  .delete-choice { display: flex; align-items: flex-start; gap: .5rem; margin: 1rem 0; }
+  .delete-choice input { margin-top: .5rem; }
+  @media (max-width: 440px) { body { padding: 1.2rem .8rem; } .actions button { padding: .6rem .8rem; } .panel { padding: .8rem; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>学習アプリ</h1>
+  <p class="app-intro">講義で学んだことを、くり返し確かめる。</p>
+  <div id="app-notice" class="notice" role="status" aria-live="polite" hidden>
+    <p id="notice-text"></p>
+    <button type="button" id="retry-action" hidden>再試行</button>
+    <button type="button" id="dismiss-notice" class="link-button">表示を閉じる</button>
+  </div>
+
+  <section id="screen-tutorial" hidden>
+    <div class="tutorial-head">
+      <h2>このアプリの使い方</h2>
+      <button type="button" id="tutorial-skip" class="link-button">スキップ</button>
+    </div>
+
+    <h3>くり返して覚えるためのアプリです</h3>
+    <p>答えた記録を残し、次にどの問題を出すかを自動で決めます。
+      できている問題は間をあけ、まちがえた問題は早めにもう一度出します。</p>
+
+    <h3>正解・不正解で、次に出るまでの間隔が変わります</h3>
+    <ul class="tutorial-list">
+      <li>正解すると、その問題が次に出るまでの間隔がのびます</li>
+      <li>まちがえると間隔がリセットされ、また近いうちに出ます</li>
+      <li>くり返し正解した問題は、2週間ほど間をあけて出ます</li>
+    </ul>
+    <p class="muted">問題が少ないときは、予定より早く出ることがあります。</p>
+
+    <h3>問題ごとに出やすさを変えられます</h3>
+    <p>答えを選ぶ画面にある「重点・標準・後回し」で切り替えます。</p>
+    <ul class="tutorial-list">
+      <li><strong>重点</strong> ― 標準より短い間隔で復習します</li>
+      <li><strong>標準</strong> ― ふつうの出やすさです</li>
+      <li><strong>後回し</strong> ― 次に出るまでの間隔が2倍になります</li>
+    </ul>
+
+    <h3>科目をしぼって出題できます</h3>
+    <p>この画面のあとに出る科目のチェックを入れると、その科目だけから出題します。
+      何も選ばなければ、すべての科目から出ます。</p>
+
+    <h3>答え合わせのあとに解説が出ます</h3>
+    <p>最後の結果画面で、まちがえた問題と正解した問題のそれぞれに解説を表示します。
+      解説のない問題もあります。</p>
+
+    <p class="tutorial-actions"><button type="button" id="tutorial-start">はじめる</button></p>
+  </section>
+
+  <section id="screen-start">
+    <div class="section-head"><h2 class="start-heading">科目</h2>
+      <button type="button" id="open-manager">科目を追加・管理</button>
+    </div>
+    <section id="empty-subjects" class="panel" aria-labelledby="empty-title" hidden>
+      <h3 id="empty-title">まだ科目が登録されていない</h3>
+      <p>このアプリには問題が組み込まれていない。JSONの問題セットを追加して、学習を始めよう。</p>
+      <p><button type="button" id="empty-add-subject" class="primary">最初の科目を追加する</button></p>
+      <p class="muted">用意した科目JSONを選ぶだけで追加できます。問題と学習履歴は、このブラウザに保存されます。</p>
+    </section>
+    <div id="subjects" role="group" aria-label="科目"></div>
+    <p id="subject-selection-hint" class="muted">科目を選ばない場合は全科目から出題します。</p>
+
+    <h2 class="start-heading">出題数</h2>
+    <div id="sizes"></div>
+    <p id="start-note" class="muted"></p>
+    <p><button type="button" id="show-tutorial" class="link-button">使い方を見る</button></p>
+  </section>
+
+  <section id="screen-manager" hidden aria-labelledby="manager-title">
+    <div class="section-head"><h2 id="manager-title">科目を追加・管理</h2>
+      <button type="button" id="manager-back">学習に戻る</button>
+    </div>
+    <p>科目JSONを選ぶか、問題セットを貼り付けて追加します。</p>
+    <p class="muted">登録前に全問の内容を確認できる。アプリからAIへの送信は行わない。</p>
+    <button type="button" id="open-pack-help" class="link-button">Claude・ChatGPT用の指示文</button>
+    <div class="panel">
+      <label class="field-label" for="pack-file">科目JSONファイルを選ぶ（2 MiB以下）</label>
+      <input id="pack-file" type="file" accept=".json,application/json">
+      <p id="file-name" class="muted"></p>
+      <details id="paste-pack"><summary>JSONを貼り付ける・選んだ内容を確認する</summary>
+      <label class="field-label" for="pack-input">問題セットを貼り付ける</label>
+      <textarea id="pack-input" class="code-input" rows="9" spellcheck="false" placeholder='{"schemaVersion":1,"subject":"科目名","questions":[...]}'></textarea>
+      </details>
+      <div class="actions"><button type="button" id="validate-pack" class="primary">内容を確認</button></div>
+    </div>
+    <div id="pack-errors" role="alert" hidden><h3>登録できない項目</h3><ul id="pack-error-list" class="error-list"></ul></div>
+    <section id="pack-preview" class="panel" hidden aria-labelledby="preview-title">
+      <h3 id="preview-title">登録前の確認</h3>
+      <p id="preview-subject"></p><p id="preview-counts"></p><p id="preview-explanation"></p>
+      <p id="preview-history" class="muted"></p>
+      <details><summary>出典一覧</summary><ul id="preview-sources"></ul></details>
+      <p class="muted">形式の検査は内容の正しさを保証しない。教材と正解を確認してから登録する。</p>
+      <details><summary>全問題の本文・正解・解説を確認する</summary><div id="preview-questions"></div></details>
+      <div class="actions"><button type="button" id="register-pack" class="primary">この内容で登録</button>
+        <button type="button" id="cancel-pack">取り消す</button></div>
+    </section>
+    <h2>登録済みの科目</h2>
+    <p class="muted">書き出すのは取り込み由来の問題セットだけ。学習履歴を含む完全バックアップではない。</p>
+    <div id="managed-subjects"></div>
+  </section>
+
+  <section id="screen-pack-help" hidden aria-labelledby="pack-help-title">
+    <div class="section-head"><h2 id="pack-help-title">問題セットの作り方</h2>
+      <button type="button" id="pack-help-back">追加画面に戻る</button></div>
+    <p>指示文をコピーし、科目名・講義資料・希望する問題数と一緒にClaudeやChatGPTへ渡します。作られたJSONファイルを追加画面で選ぶか、JSONを貼り付けて登録します。</p>
+    <p class="muted">元教材の自動送信は行わない。不明な正答や出典をAIに推測で埋めさせない。</p>
+    <details open><summary>JSONの形式</summary><pre id="pack-format"></pre></details>
+    <details><summary>2問のサンプル（授業用ではない動作確認用）</summary>
+      <pre id="pack-sample"></pre><button type="button" id="use-pack-sample">サンプルを入力欄へ入れる</button></details>
+    <h2>問題作成用の指示文</h2>
+    <p id="help-origin" class="muted"></p>
+    <textarea id="creation-prompt" class="code-input" rows="12" readonly aria-label="問題作成用の指示文"></textarea>
+    <p><button type="button" id="copy-creation-prompt">指示文をコピー</button></p>
+    <details><summary>現在の問題作成ルール全文</summary><pre id="full-question-rules"></pre></details>
+    <details><summary>教材の誤記・不明点について</summary><pre id="source-errata-text"></pre></details>
+    <details><summary>登録前に確認すること</summary><pre id="review-decisions-text"></pre></details>
+  </section>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <h2 id="delete-title">追加した科目の削除</h2>
+    <p id="delete-description"></p>
+    <p class="muted">問題を戻すには、書き出した問題セットの再取り込みが必要。履歴も削除すると、この科目の対象履歴は元に戻せない。</p>
+    <label class="delete-choice"><input id="delete-history" type="checkbox"><span>この科目の学習履歴も削除する（対応する旧履歴を含む）<br><span class="muted">未選択なら履歴を保持。同じID・同じ内容で戻したときに再利用する。</span></span></label>
+    <div class="actions"><button type="button" id="confirm-delete" class="danger">削除する</button>
+      <button type="button" id="cancel-delete">取り消す</button></div>
+    <p id="delete-error" class="danger" role="alert"></p>
+  </dialog>
+
+  <section id="screen-quiz" hidden>
+    <div class="section-head"><p id="progress"></p><span id="question-subject" class="muted"></span></div>
+    <p id="question-text" tabindex="-1"></p>
+    <ul id="choices"></ul>
+    <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
+    <div class="importance-row">
+      <span class="muted">重要度</span>
+      <div id="importance" role="group" aria-label="重要度"></div>
+    </div>
+    <div class="actions"><button type="button" id="next" class="primary" hidden>次の問題へ</button>
+      <button type="button" id="finish-session" class="link-button">ここまでで終了</button></div>
+    <p class="muted">回答は1問ずつ保存します。途中で終了しても、回答済みの問題の解説を確認できます。</p>
+  </section>
+
+  <section id="screen-result" hidden>
+    <div class="section-head"><h2>今回の結果</h2><button type="button" id="result-back">科目・出題数を選ぶ</button></div>
+    <p id="score"></p><p id="result-note" class="muted"></p>
+    <h2 id="wrong-heading"></h2>
+    <ul id="wrong-list"></ul>
+    <h2 id="correct-heading" hidden></h2>
+    <ul id="correct-list"></ul>
+    <p><button type="button" id="restart">科目・出題数を選ぶ</button></p>
+  </section>
+  <footer class="delivery-note">
+    <p class="muted">問題と学習記録は、この端末のブラウザに保存されます。友人とは問題のJSONファイルを共有できます。</p>
+    <p class="muted">iPhoneはSafariの共有から「ホーム画面に追加」で、アプリとして開けます。</p>
+    <p id="offline-status" class="muted" role="status"></p>
+  </footer>
+</main>
+
+<!-- ?v= はキャッシュ対策。スクリプトを変更したら番号を上げる。 -->
+<script src="questions.js?v=20260922-legacy64"></script>
+<script src="question-packs.js?v=20260922-legacy64"></script>
+<script src="legacy-identities.js?v=20260922-legacy64"></script>
+<script src="storage.js?v=20260922-legacy64"></script>
+<script src="scheduler.js?v=20260922-legacy64"></script>
+<script src="pack-help.js?v=20260922-legacy64"></script>
+<script src="subject-manager.js?v=20260923-exam"></script>
+<script src="app.js?v=20260923-exam"></script>
+<script src="install-support.js"></script>
+</body>
+</html>
