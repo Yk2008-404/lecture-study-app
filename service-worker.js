@@ -2,11 +2,12 @@
 
 // The distribution builder replaces this version with a digest of the app files.
 // If distributing these source files directly, change it after every app update.
-const CACHE_VERSION = '814f02869cc7fbab';
+const CACHE_VERSION = '29a586af055ef528';
 const CACHE_PREFIX = `study-app-offline:${self.registration.scope}:`;
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const RUNTIME_FILES = [
   'index.html',
+  'theme.js',
   'questions.js',
   'question-packs.js',
   'legacy-identities.js',
