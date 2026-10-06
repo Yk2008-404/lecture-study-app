@@ -1,0 +1,27 @@
+{
+  "version": "1.1.0-beta.1",
+  "release_url": "https://github.com/Yk2008-404/lecture-study-app/releases/tag/v1.1.0-beta.1",
+  "assets": [
+    {
+      "platform": "windows",
+      "file": "StudyApp-1.1.0-beta.1-Windows-Setup.exe",
+      "bytes": 111292932,
+      "sha256": "a3746860eeda4653d518e93e09dca1fcfb1de1b39cf949a0bfef7763e58b4457",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.1.0-beta.1/StudyApp-1.1.0-beta.1-Windows-Setup.exe"
+    },
+    {
+      "platform": "mac-arm64",
+      "file": "StudyApp-1.1.0-beta.1-Mac-arm64.dmg",
+      "bytes": 126498366,
+      "sha256": "a9039770be7ee76d2484eb8eb90eb14dcbd06d059478acaa77be31aebdedf029",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.1.0-beta.1/StudyApp-1.1.0-beta.1-Mac-arm64.dmg"
+    },
+    {
+      "platform": "mac-x64",
+      "file": "StudyApp-1.1.0-beta.1-Mac-x64.dmg",
+      "bytes": 133434021,
+      "sha256": "92f5f5d13f1a29a28f629c7c253da9908d4de9fdee44143a7c73e47caa31ab1e",
+      "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.1.0-beta.1/StudyApp-1.1.0-beta.1-Mac-x64.dmg"
+    }
+  ]
+}
