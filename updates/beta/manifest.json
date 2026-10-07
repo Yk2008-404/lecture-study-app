@@ -1,0 +1,17 @@
+{
+  "format": 1,
+  "content": [],
+  "shells": [
+    {
+      "version": "1.1.0-beta.2",
+      "notes": "ベータ1の不具合を直した版です。AIで作った正誤問題の正解が逆になることがある不具合、更新が重なったり止まったりする不具合などを直しました。",
+      "important": false,
+      "windows": {
+        "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.1.0-beta.2/StudyApp-1.1.0-beta.2-Windows-Setup.exe",
+        "bytes": 111293687,
+        "sha256": "621a5561e169e3cee1fd8ec2c5ef3e0a78e1bd671b83bc88150918b777c29fc9"
+      }
+    }
+  ],
+  "published": "2026-10-07T07:44:08.366Z"
+}
