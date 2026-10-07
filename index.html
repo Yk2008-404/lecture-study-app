@@ -85,6 +85,14 @@
   .session-settings { margin-top: 1.65rem; padding-top: 1.45rem; border-top: 1px solid var(--border); }
   .session-settings .start-heading { margin-bottom: 1rem; }
   #sizes { display: flex; flex-wrap: wrap; gap: .55rem; }
+  .question-mode { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .8rem; padding: 0; border: 0; }
+  .question-mode legend { width: 100%; margin-bottom: .4rem; color: var(--muted); font-size: .85rem; }
+  .question-mode label { position: relative; }
+  .question-mode input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .question-mode span { display: inline-block; padding: .4rem .85rem; border: 1px solid var(--border); border-radius: 999px; font-size: .88rem; }
+  .question-mode input:checked + span { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+  .question-mode input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .question-mode input:disabled + span { opacity: .45; }
   .size { flex: 1 1 82px; min-height: 57px; border-radius: 13px; color: var(--accent); background: var(--accent-soft); border-color: transparent; font-size: .95rem; font-variant-numeric: tabular-nums; }
   .size:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); box-shadow: 0 7px 15px -10px var(--accent); }
   #start-note { font-size: .73rem; margin: 1rem 0 0; }
@@ -165,6 +173,50 @@
   summary { cursor: pointer; font-weight: 600; font-size: .86rem; overflow-wrap: anywhere; padding: .5rem 0; min-height: 44px; }
   .notice { max-width: 880px; border: 1px solid var(--accent); border-radius: 14px; background: var(--accent-soft); padding: .85rem 1.1rem; margin: 0 auto 1.4rem; overflow-wrap: anywhere; font-size: .86rem; }
   .notice.is-error { border-color: var(--incorrect); background: var(--incorrect-soft); }
+  #update-notes { white-space: pre-line; }
+  #desktop-ai-usage { font-size: .8rem; margin: .2rem 0 .6rem; }
+  .usage-warn { color: #c77700; font-weight: 600; }
+  /* AIモードをオフにしたPC版では、AIを使う機能を画面から隠す。 */
+  body.ai-off .ai-only { display: none !important; }
+  .ai-mode-toggle { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; color: var(--muted); cursor: pointer; }
+  .ai-mode-toggle[hidden] { display: none; }
+  .why-button { margin: .4rem 0; font-size: .85rem; }
+  .card-deck { margin: .6rem 0; }
+  .flashcard { border: 1px solid var(--border); border-radius: 18px; padding: 2rem 1.4rem; margin: 1rem 0; min-height: 9rem; text-align: center; font-size: 1.15rem; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
+  #cards-back { border-top: 1px dashed var(--border); margin-top: 1rem; padding-top: 1rem; color: var(--accent); font-weight: 650; }
+  .card-drafts { display: grid; gap: .4rem; margin: .6rem 0; max-height: 26rem; overflow: auto; }
+  .card-draft { display: flex; gap: .5rem; align-items: flex-start; font-size: .88rem; }
+  #cards-ai-status { white-space: pre-line; }
+  .analysis-bars { display: grid; gap: .45rem; margin: .6rem 0 1.2rem; }
+  .analysis-row { display: grid; grid-template-columns: minmax(8rem, 2fr) 3fr 6.5rem; gap: .7rem; align-items: center; font-size: .88rem; }
+  .analysis-row .bar { height: .7rem; border-radius: 999px; background: var(--border); overflow: hidden; }
+  .analysis-row .bar span { display: block; height: 100%; background: var(--accent); }
+  .analysis-row.is-weak .bar span { background: var(--incorrect); }
+  .analysis-row .name { overflow-wrap: anywhere; }
+  #analysis-result .why-section p { white-space: pre-line; }
+  .why-result .why-section { border-left: 3px solid var(--accent); padding: .2rem .8rem; margin: .5rem 0; }
+  .why-result p { margin: .3rem 0; line-height: 1.7; }
+  #question-figure { margin: -.6rem 0 1.6rem; text-align: center; }
+  #question-figure img, .question-thumb { max-width: 100%; max-height: 26rem; border-radius: 12px; border: 1px solid var(--border); background: #fff; }
+  .question-thumb { display: block; max-height: 12rem; margin: .4rem 0; }
+  .notice.is-warning { max-width: none; margin: .6rem 0; border-color: #d9a400; background: rgba(217, 164, 0, .12); }
+  .ai-generate-types { border: 0; padding: 0; margin: .6rem 0; display: flex; gap: 1rem; flex-wrap: wrap; }
+  #ai-generate-status { white-space: pre-line; }
+  #screen-cards, #screen-analysis, #screen-report { max-width: 880px; margin: 0 auto; border-radius: 24px; padding: 2rem; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
+  #screen-report textarea { width: 100%; box-sizing: border-box; }
+  .report-issues, .report-requirements { padding-left: 1.2rem; }
+  .report-issues li, .report-requirements li { margin: .5rem 0; line-height: 1.6; }
+  .report-issues button.report-where { font: inherit; font-weight: 600; padding: 0 .35rem; min-height: 0; }
+  .report-tag { display: inline-block; font-size: .75rem; border-radius: 999px; padding: 0 .5rem; margin: 0 .3rem; background: var(--accent-soft); color: var(--accent); }
+  .report-tag.is-must { background: var(--incorrect-soft); color: var(--incorrect); }
+  .report-tag.is-ai { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .report-tag.is-agreed { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  #report-summary { white-space: pre-line; }
+  .report-lines { font-size: .9rem; line-height: 1.7; max-height: 32rem; overflow: auto; }
+  .report-line { display: grid; grid-template-columns: 3.2em 1fr; gap: .7em; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 6px; }
+  .report-line .report-no { color: var(--muted, #888); text-align: right; user-select: none; }
+  .report-line.has-issue { background: var(--accent-soft); }
+  .report-line.is-focus { outline: 2px solid var(--accent); }
   .error-list { list-style: disc; padding-left: 1.25rem; color: var(--incorrect); }
   .error-list li { margin-bottom: .5rem; overflow-wrap: anywhere; }
   .preview-question { border-top: 1px solid var(--border); padding: .8rem 0; overflow-wrap: anywhere; }
@@ -197,6 +249,16 @@
   dialog { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 3rem); overflow: auto; padding: 1.8rem; border: 1px solid var(--border); border-radius: 22px; color: var(--fg); background: var(--surface); box-shadow: 0 24px 100px #0003; }
   dialog::backdrop { background: #10142a80; backdrop-filter: blur(4px); }
   dialog h2 { margin-top: 0; }
+  .whats-new-list h3 { margin: 1rem 0 .4rem; font-size: 1rem; }
+  .whats-new-list ul { margin: 0; padding-left: 1.2rem; }
+  .whats-new-list li { margin: .45rem 0; line-height: 1.6; }
+  .share-code { margin: 1rem auto; text-align: center; }
+  .share-code svg { display: block; width: min(100%, 26rem); height: auto; margin: 0 auto; border-radius: 8px; }
+  .share-code figcaption { margin-top: .5rem; font-weight: 600; }
+  .share-list { max-height: 14rem; overflow: auto; padding-left: 0; list-style: none; }
+  .share-list li { margin: .3rem 0; }
+  .share-list label { display: flex; gap: .5rem; align-items: flex-start; }
+  #share-input { width: 100%; font-family: ui-monospace, monospace; font-size: .8rem; }
   .delete-choice { display: flex; align-items: flex-start; gap: .7rem; margin: 1.2rem 0; overflow-wrap: anywhere; }
   .delete-choice input { flex: 0 0 18px; width: 18px; height: 18px; margin-top: .4rem; }
   .delivery-note { color: var(--muted); margin-top: 2.2rem; padding-top: 1.3rem; border-top: 1px solid var(--border); text-align: center; }
@@ -270,6 +332,7 @@
   <div class="header-actions">
     <a id="download-app" class="link-button" href="download/">PC版</a>
     <button type="button" id="show-tutorial" class="link-button">使い方</button>
+    <label id="ai-mode-toggle" class="ai-mode-toggle" hidden title="オフにすると、AIを使う機能を画面から隠します"><input type="checkbox" id="ai-mode" checked> AIモード</label>
     <select id="theme-select" aria-label="表示モード" title="表示モード">
       <option value="system">自動</option>
       <option value="light">ライト</option>
@@ -283,14 +346,23 @@
     <button type="button" id="retry-action" hidden>再試行</button>
     <button type="button" id="dismiss-notice" class="link-button">表示を閉じる</button>
   </div>
+  <div id="update-notice" class="notice" role="region" aria-label="アプリの更新" hidden>
+    <p><strong id="update-title"></strong></p>
+    <p id="update-notes"></p>
+    <p id="update-status" role="status" aria-live="polite"></p>
+    <button type="button" id="update-apply">更新する</button>
+    <button type="button" id="update-later" class="link-button">後で</button>
+  </div>
 
-  <aside id="desktop-ai-panel" class="panel" hidden aria-label="記述の採点設定">
+  <aside id="desktop-ai-panel" class="panel ai-only" hidden aria-label="記述の採点設定">
     <div class="actions">
       <label class="field-label" for="desktop-ai-provider">採点AI</label>
-      <select id="desktop-ai-provider" class="manual-input"><option value="codex">Codex</option><option value="claude">Claude</option></select>
+      <select id="desktop-ai-provider" class="manual-input"><option value="codex">Codex</option><option value="claude">Claude</option><option value="double" disabled hidden>ダブルチェック（Codex＋Claude）</option></select>
       <button type="button" id="desktop-ai-refresh">状態を更新</button>
+      <button type="button" id="open-report" hidden>レポートをチェック</button>
     </div>
     <p id="desktop-ai-status" role="status" aria-live="polite">状態を確認中…</p>
+    <p id="desktop-ai-usage" class="muted" hidden></p>
     <div class="actions">
       <button type="button" id="desktop-ai-install" hidden>インストール</button>
       <button type="button" id="desktop-ai-login" hidden>ログイン</button>
@@ -357,9 +429,18 @@
         <p id="subject-selection-hint" class="muted">未選択なら全科目から出題。</p>
         <div class="session-settings">
           <h2 class="start-heading"><span class="step-number" aria-hidden="true">02</span>問題数を選んで開始</h2>
+          <fieldset id="question-mode" class="question-mode"><legend>出題する形式</legend>
+            <label><input type="radio" name="question-mode" value="all" checked><span>すべて</span></label>
+            <label><input type="radio" name="question-mode" value="choice"><span>選択問題だけ</span></label>
+            <label><input type="radio" name="question-mode" value="truefalse"><span>正誤だけ</span></label>
+            <label id="question-mode-written" hidden><input type="radio" name="question-mode" value="written"><span>記述だけ</span></label>
+          </fieldset>
           <div id="sizes"></div>
           <p id="start-note" class="muted"></p>
           <button type="button" id="resume-written" hidden>記述の続きを開く</button>
+          <button type="button" id="review-wrong" hidden>間違えた問題だけ復習</button>
+          <button type="button" id="open-analysis">学習の分析</button>
+          <button type="button" id="open-cards">暗記カード</button>
         </div>
       </div>
     </div>
@@ -372,11 +453,41 @@
     <p>ファイルから追加、または自分で問題を作成できます。</p>
     <p id="browser-format-note" class="muted">ブラウザ版は選択・正誤問題に対応。記述問題はPC専用アプリで使えます。</p>
     <button type="button" id="open-pack-help" class="link-button">AI用の指示文</button>
+    <details class="panel ai-only" id="ai-generate" hidden><summary>AIで問題集を作る（Word資料から）</summary>
+      <p class="notice is-warning" id="ai-generate-warning"><strong>ご注意：</strong>アプリ内のAIで作る問題は、ChatGPTやClaudeなどの生成AIに講義資料を直接渡して作った問題より、質が劣ることがあります。資料の図・表・画像・数式は読み取れず、一度に扱える量にも限りがあります。登録前に必ず問題と正解を確認してください。試験対策など質を重視する場合は、「AI用の指示文」を使って別の生成AIで作ることをおすすめします。</p>
+      <p class="muted">Wordの赤文字を重要語・答えとして優先して出題します。赤文字がない場合は、資料にある答えや重要な用語から作ります。</p>
+      <label class="field-label" for="ai-generate-file">講義資料（Word .docx）</label>
+      <input id="ai-generate-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+      <p id="ai-generate-file-info" class="muted"></p>
+      <label class="field-label" for="ai-generate-subject">科目名</label>
+      <input id="ai-generate-subject" class="manual-input" maxlength="200" autocomplete="off">
+      <div class="actions">
+        <label class="field-label" for="ai-generate-count">問題数（目安）</label>
+        <select id="ai-generate-count" class="manual-input"><option value="10">10問</option><option value="20" selected>20問</option><option value="30">30問</option><option value="40">40問</option></select>
+      </div>
+      <fieldset class="ai-generate-types"><legend>問題形式</legend>
+        <label><input type="checkbox" name="ai-generate-type" value="選択肢" checked> 選択肢</label>
+        <label><input type="checkbox" name="ai-generate-type" value="正誤" checked> 正誤</label>
+        <label><input type="checkbox" name="ai-generate-type" value="記述"> 記述</label>
+      </fieldset>
+      <p id="ai-generate-provider" class="muted"></p>
+      <div class="actions">
+        <button type="button" id="ai-generate-start" class="primary">AIで作成</button>
+        <button type="button" id="ai-generate-cancel" hidden>取り消す</button>
+      </div>
+      <p id="ai-generate-status" role="status" aria-live="polite"></p>
+    </details>
+    <details class="panel" id="share-receive"><summary>共有された問題を取り込む（QRコード・リンク）</summary>
+      <p class="muted">スマホでQRコードを読み取ると、Web版でそのまま取り込めます。PC版では、共有リンクを下に貼り付けてください。QRコードが複数枚あるときは、すべてのリンクを貼り付けます（順番は問いません）。</p>
+      <textarea id="share-input" class="manual-input" rows="3" spellcheck="false" autocomplete="off" aria-label="共有リンク"></textarea>
+      <div class="actions"><button type="button" id="share-read">リンクを読み込む</button></div>
+      <p id="share-status" role="status" aria-live="polite"></p>
+    </details>
     <details class="panel" id="manual-create"><summary>自分で問題を作る</summary><div id="manual-editor"></div></details>
     <div class="panel">
       <label class="field-label" for="pack-file">問題集を選ぶ</label>
-      <input id="pack-file" type="file" accept=".json,.docx,.txt,.md,.markdown,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown">
-      <p class="muted">Word（.docx）は5 MiB、JSON・TXT・Markdownは2 MiBまで。</p>
+      <input id="pack-file" type="file" multiple accept=".zip,application/zip,.json,.docx,.txt,.md,.markdown,application/json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,.png,.jpg,.jpeg,.webp,.gif,image/png,image/jpeg,image/webp,image/gif">
+      <p class="muted">Word（.docx）は5 MiB、JSON・TXT・Markdownは2 MiBまで。画像を使う問題集は、JSONと画像をまとめたZIP（問題集パック）をそのまま選べます。JSONと画像ファイルを一緒に選んでも取り込めます。</p>
       <p id="file-name" class="muted"></p>
       <details id="import-format"><summary>テキスト・Wordの書式</summary>
         <p class="muted">問題・選択肢・正解を次のように書きます。Wordの番号は自動番号を使わず、文字として入力してください。画像・数式オブジェクトは未対応です。</p>
@@ -428,6 +539,100 @@ B. dog
     <div id="managed-subjects"></div>
   </section>
 
+  <section id="screen-cards" hidden aria-labelledby="cards-title">
+    <div class="section-head"><h2 id="cards-title">暗記カード</h2>
+      <button type="button" id="cards-back-start">学習に戻る</button>
+    </div>
+    <div id="cards-home">
+      <div id="cards-decks"></div>
+      <details class="panel ai-only" id="cards-ai" hidden><summary>AIでカードを作る（Word資料から）</summary>
+        <p class="notice is-warning">アプリ内のAIで作るカードは、別の生成AIに資料を直接渡して作るより質が劣ることがあります。図・表・数式は読み取れません。保存前に必ず表と裏を確認してください。</p>
+        <p class="muted">Wordの赤文字を答え（裏面）として優先します。</p>
+        <label class="field-label" for="cards-ai-file">講義資料（Word .docx）</label>
+        <input id="cards-ai-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <p id="cards-ai-file-info" class="muted"></p>
+        <label class="field-label" for="cards-ai-deck">束の名前</label>
+        <input id="cards-ai-deck" class="manual-input" maxlength="200" autocomplete="off">
+        <div class="actions"><label class="field-label" for="cards-ai-count">枚数（目安）</label>
+          <select id="cards-ai-count" class="manual-input"><option value="20">20枚</option><option value="40" selected>40枚</option><option value="60">60枚</option></select></div>
+        <p id="cards-ai-provider" class="muted"></p>
+        <div class="actions"><button type="button" id="cards-ai-start" class="primary">AIで作成</button><button type="button" id="cards-ai-cancel" hidden>取り消す</button></div>
+        <p id="cards-ai-status" role="status" aria-live="polite"></p>
+        <div id="cards-ai-preview" hidden><div id="cards-ai-list" class="card-drafts"></div><button type="button" id="cards-ai-save" class="primary">チェックしたカードを保存</button></div>
+      </details>
+      <details class="panel" id="cards-manual"><summary>自分でカードを追加</summary>
+        <label class="field-label" for="cards-manual-deck">束の名前</label><input id="cards-manual-deck" class="manual-input" maxlength="200" autocomplete="off">
+        <label class="field-label" for="cards-manual-front">表（問い・用語）</label><textarea id="cards-manual-front" class="manual-input" rows="2" maxlength="1000"></textarea>
+        <label class="field-label" for="cards-manual-back">裏（答え）</label><textarea id="cards-manual-back" class="manual-input" rows="2" maxlength="2000"></textarea>
+        <div class="actions"><button type="button" id="cards-manual-add" class="primary">カードを追加</button></div>
+        <p id="cards-manual-status" class="muted" role="status" aria-live="polite"></p>
+      </details>
+    </div>
+    <div id="cards-study" hidden>
+      <p id="cards-progress" class="muted"></p>
+      <div class="flashcard"><p id="cards-front"></p><p id="cards-back" hidden></p></div>
+      <div class="actions"><button type="button" id="cards-reveal" class="primary">答えを見る</button></div>
+      <div class="actions" id="cards-grade" hidden><button type="button" id="cards-known" class="primary">覚えた</button><button type="button" id="cards-unknown">まだ</button></div>
+      <p><button type="button" id="cards-quit" class="link-button">ここで終了</button></p>
+    </div>
+  </section>
+
+  <section id="screen-analysis" hidden aria-labelledby="analysis-title">
+    <div class="section-head"><h2 id="analysis-title">学習の分析</h2>
+      <button type="button" id="analysis-back">学習に戻る</button>
+    </div>
+    <p id="analysis-overall"></p>
+    <h3>科目ごとの正答率</h3>
+    <div id="analysis-subjects" class="analysis-bars"></div>
+    <h3>苦手な分野（3回以上解いた中で正答率が低い順）</h3>
+    <p class="muted">分野は「科目 / 出典 / 箇所」ごとにまとめています。</p>
+    <div id="analysis-weak" class="analysis-bars"></div>
+    <section id="analysis-ai" class="panel ai-only" hidden aria-labelledby="analysis-ai-title">
+      <h3 id="analysis-ai-title">AIで苦手な理由を分析</h3>
+      <p class="muted">苦手な分野の成績と、最近間違えた問題（最大30問）を選んだAIに送り、間違え方の共通点と対策を分析します。</p>
+      <p id="analysis-provider" class="muted"></p>
+      <div class="actions"><button type="button" id="analysis-start" class="primary">AIで分析する</button></div>
+      <p id="analysis-status" role="status" aria-live="polite"></p>
+      <div id="analysis-result"></div>
+    </section>
+  </section>
+
+  <section id="screen-report" hidden aria-labelledby="report-title">
+    <div class="section-head"><h2 id="report-title">レポートチェック</h2>
+      <button type="button" id="report-back">学習に戻る</button>
+    </div>
+    <p class="notice is-warning">AIがレポートの誤字・脱字、句読点、文法、文脈と、要項に沿っているかを確認し、<strong>行番号つきで指摘だけを報告します。レポート本文は書き換えません。</strong>AIの指摘には誤りもあるため、直すかどうかはご自身で判断してください。入力した要項とレポートは、選んだAI（Codex・Claude）に送られます。</p>
+    <div class="panel">
+      <label class="field-label" for="report-requirements">レポートの要項（任意）</label>
+      <textarea id="report-requirements" rows="5" maxlength="10000" placeholder="例：「〜」について2000字以上2400字以内。序論・本論・結論の構成。参考文献を末尾に記載。"></textarea>
+      <label class="field-label" for="report-file">レポート（Word .docx・テキスト）</label>
+      <input id="report-file" type="file" accept=".docx,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown">
+      <p id="report-file-info" class="muted"></p>
+      <label class="field-label" for="report-text">または本文を貼り付け</label>
+      <textarea id="report-text" rows="12" spellcheck="false" placeholder="レポートの本文を貼り付け"></textarea>
+      <p id="report-stats" class="muted"></p>
+      <div class="actions">
+        <label class="field-label" for="report-citation">参考文献の書き方</label>
+        <select id="report-citation" class="manual-input"><option value="auto" selected>要項に従う（指定がなければ一般的な書き方）</option><option value="sist02">SIST 02</option><option value="apa">APA（第7版）</option><option value="none">参考文献はチェックしない</option></select>
+      </div>
+      <p id="report-provider" class="muted"></p>
+      <div class="actions">
+        <button type="button" id="report-start" class="primary">チェックする</button>
+        <button type="button" id="report-cancel" hidden>取り消す</button>
+      </div>
+      <p id="report-status" role="status" aria-live="polite"></p>
+    </div>
+    <section id="report-result" class="panel" hidden aria-labelledby="report-result-title">
+      <h3 id="report-result-title">チェック結果</h3>
+      <p class="muted">行番号は下の「行番号つきの本文」の番号です（改行・段落ごとに1行）。指摘を押すと該当行を表示します。</p>
+      <p id="report-summary"></p>
+      <div id="report-requirement-panel"><h4>要項との対応</h4><ul id="report-requirement-list" class="report-requirements"></ul></div>
+      <h4>指摘 <span id="report-issue-count"></span></h4>
+      <ol id="report-issue-list" class="report-issues"></ol>
+      <details id="report-lines-panel" open><summary>行番号つきの本文</summary><div id="report-lines" class="report-lines"></div></details>
+    </section>
+  </section>
+
   <section id="screen-pack-help" hidden aria-labelledby="pack-help-title">
     <div class="section-head"><h2 id="pack-help-title">問題セットの作り方</h2>
       <button type="button" id="pack-help-back">追加画面に戻る</button></div>
@@ -455,16 +660,41 @@ B. dog
     <p id="delete-error" class="danger" role="alert"></p>
   </dialog>
 
+  <dialog id="whats-new" aria-labelledby="whats-new-title">
+    <h2 id="whats-new-title">更新内容</h2>
+    <div id="whats-new-list" class="whats-new-list"></div>
+    <div class="actions"><button type="button" id="whats-new-close" class="primary">閉じる</button></div>
+  </dialog>
+
+  <dialog id="share-dialog" aria-labelledby="share-title">
+    <h2 id="share-title">QRコードで共有</h2>
+    <p id="share-subject" class="muted"></p>
+    <details id="share-pick"><summary id="share-pick-summary">共有する問題を選ぶ</summary>
+      <div class="actions"><button type="button" id="share-all" class="link-button">すべて選ぶ</button><button type="button" id="share-none" class="link-button">すべて外す</button></div>
+      <ul id="share-list" class="share-list"></ul>
+    </details>
+    <label class="delete-choice"><input id="share-explanation" type="checkbox" checked><span>解説も含める<br><span class="muted">外すとQRコードの枚数を減らせます。</span></span></label>
+    <p id="share-size" role="status" aria-live="polite"></p>
+    <figure id="share-code" class="share-code" hidden>
+      <div id="share-qr"></div>
+      <figcaption id="share-page"></figcaption>
+    </figure>
+    <div class="actions" id="share-nav" hidden><button type="button" id="share-prev">前へ</button><button type="button" id="share-next">次へ</button><button type="button" id="share-copy">リンクをコピー</button></div>
+    <p class="muted">相手がスマホのカメラで読み取ると、Web版の学習アプリが開き、確認のあとで取り込めます。問題はリンクの中に入っていて、サーバーには保存されません。学習履歴と、画像つきの問題は共有されません。</p>
+    <div class="actions"><button type="button" id="share-close">閉じる</button></div>
+  </dialog>
+
   <section id="screen-quiz" hidden>
     <div class="section-head"><p id="progress"></p><span id="question-subject" class="muted"></span></div>
     <progress id="session-progress" value="0" max="1" aria-label="回答した問題数"></progress>
     <p id="question-text" tabindex="-1"></p>
+    <figure id="question-figure" hidden><img id="question-image" alt=""></figure>
     <ul id="choices"></ul>
     <section id="written-tools" hidden aria-label="記述の解答">
       <label class="field-label" for="written-response">あなたの解答</label>
       <textarea id="written-response" rows="6" maxlength="10000"></textarea>
       <p id="written-status" class="muted" role="status" aria-live="polite"></p>
-      <div class="actions"><button type="button" id="grade-written" class="primary">AIで採点</button></div>
+      <div class="actions ai-only"><button type="button" id="grade-written" class="primary">AIで採点</button></div>
       <p class="muted">80点以上を正解として記録します。</p>
       <div id="written-transfer" hidden>
         <div class="actions">
@@ -502,10 +732,12 @@ B. dog
     <ul id="wrong-list"></ul>
     <h2 id="correct-heading" hidden></h2>
     <ul id="correct-list"></ul>
-    <p><button type="button" id="restart">科目・出題数を選ぶ</button></p>
+    <p><button type="button" id="retry-wrong" class="primary" hidden>間違えた問題をもう一度</button> <button type="button" id="restart">科目・出題数を選ぶ</button></p>
   </section>
   <footer class="delivery-note">
     <p id="storage-location" class="muted">問題・履歴はこのブラウザに保存されます。</p>
+    <p id="app-version" class="muted" data-built="2026-10-07"></p>
+    <p><button type="button" id="open-whats-new" class="link-button">更新内容</button></p>
     <details><summary>インストール・共有</summary><p>友人とは問題のJSONファイルを共有できます。</p><p class="muted">iPhoneはSafariの共有から「ホーム画面に追加」で、アプリとして開けます。</p></details>
     <p id="offline-status" class="muted" role="status"></p>
   </footer>
@@ -520,11 +752,15 @@ B. dog
 <script src="scheduler.js?v=20261006-written"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
 <script src="vendor/fflate-0.8.2.js"></script>
+<script src="vendor/qrcode-generator-2.0.4.js"></script>
+<script src="share.js?v=20261007-share"></script>
 <script src="document-reader.js?v=20261006-import"></script>
 <script src="question-import.js?v=20261006-written"></script>
 <script src="question-editor.js?v=20261006-desktop"></script>
 <script src="subject-manager.js?v=20261006-desktop"></script>
 <script src="written-practice.js?v=20261006-written"></script>
+<script src="flashcards.js?v=20261007-cards"></script>
+<script src="whats-new.js?v=20261007-notes"></script>
 <script src="app.js?v=20261006-desktop"></script>
 <script src="install-support.js"></script>
 </body>

@@ -70,6 +70,13 @@ const SubjectManager = (() => {
         await refresh();
       }));
       actions.append(exportButton);
+      if (typeof QuestionShare !== 'undefined' && extra.some(QuestionShare.shareable)) {
+        const shareButton = element('button', 'QRコードで共有');
+        shareButton.type = 'button';
+        shareButton.dataset.shareSubject = subject;
+        shareButton.addEventListener('click', app.safeAction(() => openShare(subject)));
+        actions.append(shareButton);
+      }
       if (extra.length) {
         const remove = element('button', builtSubjects.has(subject) ? '追加分だけを削除' : '科目を削除', 'danger');
         remove.type = 'button';
@@ -132,7 +139,8 @@ const SubjectManager = (() => {
       draft.questions.forEach((q, index) => {
         const item = element('details', undefined, 'preview-question');
         item.append(element('summary', `${index + 1}. ${q.text}`));
-        item.append(element('p', `${q.id} / ${q.questionType} / 重要度 ${q.importance || 'B'}`, 'muted'));
+        item.append(element('p', `${q.id} / ${q.questionType} / 重要度 ${q.importance || 'B'}${q.image ? ' / 画像あり' : ''}`, 'muted'));
+        if (q.image) { const image = element('img', undefined, 'question-thumb'); image.src = q.image.src; image.alt = q.image.alt; item.append(image, element('p', `画像の説明：${q.image.alt}`, 'muted')); }
         const choices = element('ol');
         q.choices.forEach((choice) => choices.append(element('li', choice)));
         item.append(choices);
@@ -174,23 +182,56 @@ const SubjectManager = (() => {
     $('manager-back').focus();
     window.scrollTo(0, 0);
   }
+  const IMAGE_FILE = /\.(?:png|jpe?g|webp|gif)$/i;
+  const shrinkImage = (file) => ImageTools.shrink(file);
+  /** JSONの image: { file, alt } を、一緒に選んだ画像ファイルの埋め込みに置き換える。 */
+  async function embedImages(text, images) {
+    let pack;
+    try { pack = JSON.parse(text); } catch (_) { return text; }
+    const questions = Array.isArray(pack?.questions) ? pack.questions : [];
+    const wanted = questions.filter((q) => q && typeof q.image === 'object' && q.image && typeof q.image.file === 'string');
+    if (!wanted.length) return text;
+    // ZIP内の「images/heart.png」のようなパスを優先し、なければファイル名だけで照合する。
+    const key = (name) => name.replace(/\\/g, '/').replace(/^\.?\//, '').normalize('NFC').toLowerCase();
+    const byPath = new Map(images.filter((file) => file.path).map((file) => [key(file.path), file]));
+    const byName = new Map(images.map((file) => [key(file.name), file]));
+    const missing = [];
+    for (const q of wanted) {
+      const file = byPath.get(key(q.image.file)) || byName.get(key(q.image.file).split('/').pop());
+      if (!file) { missing.push(q.image.file); continue; }
+      q.image = { src: await shrinkImage(file), alt: q.image.alt };
+    }
+    if (missing.length) throw new Error(`問題で使う画像ファイルが見つかりません：${[...new Set(missing)].join('、')}。ZIPに入れるか、JSONと画像ファイルを一緒に選んでください。`);
+    const result = JSON.stringify(pack, null, 2);
+    const size = new TextEncoder().encode(result).length;
+    if (size > QuestionPacks.MAX_BYTES) throw new Error(`画像を含めた問題集が大きすぎます（約${(size / 1048576).toFixed(1)} MiB、上限2 MiB）。画像を減らすか、科目・講義回ごとに分けてください。`);
+    return result;
+  }
   async function readFile() {
     if (busy) return;
-    const file = $('pack-file').files[0];
+    const files = Array.from($('pack-file').files || []);
+    const images = files.filter((f) => IMAGE_FILE.test(f.name));
+    const documents = files.filter((f) => !IMAGE_FILE.test(f.name));
+    const file = documents[0];
     invalidate();
     $('pack-input').value = '';
     $('file-name').textContent = '';
     inputFilename = '';
     inputOrigin = 'file';
-    if (!file) return;
+    if (!files.length) return;
+    if (documents.length !== 1) { errors([{ path: 'ファイル', reason: '問題集のファイルを1つ選んでください。画像を使う問題集は、JSONと画像ファイルを一緒に選べます。' }]); return; }
     const requestRevision = revision;
     setBusy(true);
     try {
-      const result = await DocumentReader.read(file);
+      // 問題集パック（.zip）：JSONと画像をまとめた1ファイル。
+      const result = /\.zip$/i.test(file.name) ? await DocumentReader.readPack(file) : await DocumentReader.read(file);
       if (requestRevision !== revision) return;
-      $('pack-input').value = result.text;
+      const text = result.images || /\.json$/i.test(file.name) ? await embedImages(result.text, images.concat(result.images || [])) : result.text;
+      if (requestRevision !== revision) return;
+      $('pack-input').value = text;
       inputFilename = result.filename;
-      $('file-name').textContent = `選択したファイル：${file.name}`;
+      const imageCount = images.length + (result.images?.length || 0);
+      $('file-name').textContent = `選択したファイル：${file.name}` + (imageCount ? `（画像 ${imageCount} 枚）` : '');
     } catch (error) {
       if (requestRevision === revision) errors([{ path: 'ファイル', reason: error.message }]);
       return;
@@ -236,6 +277,102 @@ const SubjectManager = (() => {
     await refresh();
   }
   async function open() { await refresh(); app.showScreen('manager'); }
+
+  // ---- QRコードでの共有 ----
+  let share = null;
+  async function openShare(subject) {
+    const imported = await Storage.getImportedQuestions();
+    const questions = imported.filter((q) => q.subject === subject);
+    const usable = questions.filter(QuestionShare.shareable);
+    if (!usable.length) throw new Error('共有できる問題がありません（画像つきの問題は、ZIPの書き出しで渡してください）。');
+    share = { subject, questions: usable, selected: new Set(usable.map((q) => q.id)), links: [], page: 0 };
+    const skipped = questions.length - usable.length;
+    $('share-subject').textContent = `${subject}：${usable.length} 問` + (skipped ? `（画像つきの ${skipped} 問は共有できません）` : '');
+    $('share-list').replaceChildren(...usable.map((q) => {
+      const box = element('input'); box.type = 'checkbox'; box.checked = true; box.dataset.id = q.id;
+      box.addEventListener('change', () => { box.checked ? share.selected.add(q.id) : share.selected.delete(q.id); renderShare(); });
+      const label = element('label'); label.append(box, element('span', q.text.length > 60 ? q.text.slice(0, 60) + '…' : q.text));
+      const item = element('li'); item.append(label); return item;
+    }));
+    $('share-pick').open = false;
+    renderShare();
+    $('share-dialog').showModal();
+  }
+  function selectAllShare(value) {
+    if (!share) return;
+    share.selected = new Set(value ? share.questions.map((q) => q.id) : []);
+    $('share-list').querySelectorAll('input[type=checkbox]').forEach((box) => { box.checked = value; });
+    renderShare();
+  }
+  function renderShare() {
+    if (!share) return;
+    const chosen = share.questions.filter((q) => share.selected.has(q.id));
+    $('share-pick-summary').textContent = `共有する問題を選ぶ（${chosen.length} / ${share.questions.length} 問）`;
+    share.links = []; share.page = 0;
+    if (!chosen.length) {
+      $('share-size').textContent = '共有する問題を1問以上選んでください。';
+      $('share-code').hidden = true; $('share-nav').hidden = true; return;
+    }
+    const result = QuestionShare.encode(QuestionShare.packFor(share.subject, chosen, $('share-explanation').checked));
+    if (!result.fits) {
+      $('share-size').textContent = `${chosen.length} 問だとQRコードが ${result.parts} 枚になり、多すぎます（${QuestionShare.MAX_PARTS} 枚まで）。問題を減らすか、解説を外すか、「問題を書き出す」でファイルを渡してください。`;
+      $('share-code').hidden = true; $('share-nav').hidden = true; return;
+    }
+    share.links = result.links;
+    $('share-size').textContent = result.parts === 1 ? `${chosen.length} 問をQRコード1枚にまとめました。` : `${chosen.length} 問をQRコード ${result.parts} 枚に分けました。すべて読み取ってもらってください（順番は問いません）。`;
+    showSharePage();
+  }
+  function showSharePage() {
+    const total = share.links.length;
+    const svg = QuestionShare.qrSvg(share.links[share.page]);
+    svg.setAttribute('aria-label', `共有用のQRコード ${share.page + 1} / ${total}`);
+    $('share-qr').replaceChildren(svg);
+    $('share-page').textContent = total > 1 ? `${share.page + 1} / ${total} 枚目` : '';
+    $('share-code').hidden = false; $('share-nav').hidden = false;
+    $('share-prev').hidden = $('share-next').hidden = total === 1;
+    $('share-prev').disabled = share.page === 0;
+    $('share-next').disabled = share.page === total - 1;
+  }
+  async function copyShareLink() {
+    if (!share?.links.length) return;
+    const all = share.links.join('\n');
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('コピーAPIなし');
+      await navigator.clipboard.writeText(all);
+      app.notify(share.links.length > 1 ? `共有リンク ${share.links.length} 本をまとめてコピーしました。` : '共有リンクをコピーしました。');
+    } catch (_) { app.notify('コピーできませんでした。QRコードを読み取ってもらってください。', true); }
+  }
+
+  // ---- 共有された問題の受け取り ----
+  const received = {};
+  /** リンクを集め、そろったら「登録前の確認」へ。自動では登録しない。 */
+  async function receive(text) {
+    const links = QuestionShare.findLinks(text);
+    if (!links.length) throw new Error('共有リンクが見つかりません。「' + QuestionShare.BASE + '#share=…」で始まるリンクを貼り付けてください。');
+    const result = QuestionShare.collect(links, received);
+    await open();
+    $('share-receive').open = true;
+    if (!result.done) {
+      $('share-status').textContent = `QRコード ${result.total} 枚のうち ${result.have} 枚を読み取りました。残り：${result.missing.join('・')} 枚目。`;
+      $('share-receive').scrollIntoView?.({ block: 'start' });
+      return;
+    }
+    $('share-status').textContent = '共有された問題を読み取りました。下の内容を確認してから登録してください。';
+    $('share-input').value = '';
+    invalidate();
+    $('pack-input').value = result.text;
+    $('pack-file').value = ''; $('file-name').textContent = '共有された問題';
+    inputFilename = ''; inputOrigin = 'shared';
+    await preview();
+  }
+  /** Web版：QRコードから開かれたときに、リンクの「#share=…」を受け取る。 */
+  async function receiveFromLocation() {
+    if (!QuestionShare.parseLink(location.hash)) return;
+    const text = location.hash;
+    // 読み取った内容はアドレス欄・履歴に残さない。
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (_) { location.hash = ''; }
+    await receive(text);
+  }
   async function help() {
     const imported = await Storage.getImportedQuestions();
     const all = app.builtIns.concat(imported);
@@ -284,6 +421,17 @@ const SubjectManager = (() => {
     on('confirm-delete', confirmDelete);
     $('delete-dialog').addEventListener('cancel', (e) => { if (busy) e.preventDefault(); });
     on('copy-creation-prompt', copyPrompt);
+    if (typeof QuestionShare !== 'undefined' && $('share-dialog')) {
+      on('share-close', () => { $('share-dialog').close(); share = null; });
+      on('share-prev', () => { if (share && share.page > 0) { share.page--; showSharePage(); } });
+      on('share-next', () => { if (share && share.page < share.links.length - 1) { share.page++; showSharePage(); } });
+      on('share-copy', copyShareLink);
+      on('share-all', () => selectAllShare(true));
+      on('share-none', () => selectAllShare(false));
+      on('share-explanation', renderShare, 'change');
+      on('share-read', () => receive($('share-input').value));
+      window.addEventListener?.('hashchange', app.safeAction(receiveFromLocation));
+    }
     on('use-pack-sample', async () => {
       $('pack-input').value = JSON.stringify(PackHelp.sample, null, 2);
       $('file-name').textContent = '';
@@ -313,5 +461,15 @@ const SubjectManager = (() => {
       },
     });
   }
-  return { initialize, open, refresh };
+  /** AIで作った問題セットを、手作りと同じ「登録前の確認」に通す。自動では登録しない。 */
+  async function previewGenerated(pack, filename) {
+    if (busy) throw new Error('処理が終わってから、もう一度お試しください。');
+    invalidate();
+    $('pack-input').value = JSON.stringify(pack, null, 2);
+    $('pack-file').value = ''; $('file-name').textContent = '';
+    inputFilename = filename || ''; inputOrigin = 'generated';
+    await preview();
+    if (draft) $('pack-preview').scrollIntoView?.({ block: 'start' });
+  }
+  return { initialize, open, refresh, previewGenerated, receiveFromLocation };
 })();

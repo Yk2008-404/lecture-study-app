@@ -2,7 +2,7 @@
 
 // The distribution builder replaces this version with a digest of the app files.
 // If distributing these source files directly, change it after every app update.
-const CACHE_VERSION = 'cd6b08c2fcad2cd1';
+const CACHE_VERSION = '3205441e30a2c9c5';
 const CACHE_PREFIX = `study-app-offline:${self.registration.scope}:`;
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const RUNTIME_FILES = [
@@ -16,11 +16,16 @@ const RUNTIME_FILES = [
   'pack-help.js',
   'vendor/fflate-0.8.2.js',
   'vendor/fflate-LICENSE.txt',
+  'vendor/qrcode-generator-2.0.4.js',
+  'vendor/qrcode-generator-LICENSE.txt',
+  'share.js',
   'document-reader.js',
   'question-import.js',
   'question-editor.js',
   'subject-manager.js',
   'written-practice.js',
+  'flashcards.js',
+  'whats-new.js',
   'app.js',
   'install-support.js',
   'manifest.webmanifest',

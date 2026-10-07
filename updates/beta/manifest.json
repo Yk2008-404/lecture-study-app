@@ -20,7 +20,17 @@
         "bytes": 111293687,
         "sha256": "621a5561e169e3cee1fd8ec2c5ef3e0a78e1bd671b83bc88150918b777c29fc9"
       }
+    },
+    {
+      "version": "1.2.0",
+      "notes": "ベータテストは終了しました。正式版 1.2.0 です。QRコードで問題を共有、出題する形式（選択問題だけ・正誤だけ・記述だけ）、更新内容の表示、ベータ版の新機能（アプリ内アップデート、AIで問題集・暗記カードを作る、レポートチェック、ダブルチェック、復習・分析など）をまとめた版です。",
+      "important": false,
+      "windows": {
+        "url": "https://github.com/Yk2008-404/lecture-study-app/releases/download/v1.2.0/StudyApp-1.2.0-Windows-Setup.exe",
+        "bytes": 111309682,
+        "sha256": "62807c0d43a1bf9cd1a15ca55483dc4f2cf66f517f550a63346cd20a210c2a14"
+      }
     }
   ],
-  "published": "2026-10-07T12:10:35.957Z"
+  "published": "2026-10-07T12:28:52.756Z"
 }

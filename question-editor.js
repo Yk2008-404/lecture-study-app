@@ -1,3 +1,22 @@
+/** 問題に付ける画像の縮小。保存容量を抑えるため、長辺900pxのJPEG（data URI）にする。 */
+const ImageTools = (() => {
+  'use strict';
+  async function shrink(file) {
+    if (file.size > 20 * 1024 * 1024) throw new Error(`画像が大きすぎます：${file.name || '画像'}`);
+    let bitmap;
+    try { bitmap = await createImageBitmap(file); } catch (_) { throw new Error(`画像を読み取れません：${file.name || '画像'}`); }
+    const scale = Math.min(1, 900 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    return canvas.toDataURL('image/jpeg', 0.8);
+  }
+  return { shrink };
+})();
+
 /** 自作問題の一時編集。保存と登録検査は呼び出し側に任せる。 */
 const QuestionEditor = (() => {
   'use strict';
@@ -10,6 +29,7 @@ const QuestionEditor = (() => {
   let nextNumber = 1;
   let busy = false;
   let generation = 0;
+  let image = null;
   const allowWritten = !!window.studyDesktop;
 
   function element(tag, text, className) {
@@ -63,12 +83,13 @@ const QuestionEditor = (() => {
     fields.explanation.value = '';
     fields.source.value = '';
     fields.location.value = '';
+    setImage(null);
     fields.add.textContent = '問題を追加';
     fields.cancel.hidden = true;
     updateType();
   }
   function hasUnaddedInput() {
-    return editingId !== null || [fields.text, ...fields.choices, fields.modelAnswer, fields.explanation, fields.source, fields.location]
+    return editingId !== null || !!image || [fields.text, ...fields.choices, fields.modelAnswer, fields.explanation, fields.source, fields.location]
       .some(input => input.value.trim()) || fields.answers.some(input => input.checked);
   }
   function renderList() {
@@ -77,7 +98,7 @@ const QuestionEditor = (() => {
     fields.count.hidden = !questions.length;
     questions.forEach((entry, index) => {
       const item = element('li', undefined, 'preview-question');
-      item.append(element('p', `${index + 1}. ${entry.question.text}`));
+      item.append(element('p', `${index + 1}. ${entry.question.text}${entry.question.image ? '（画像あり）' : ''}`));
       const q = entry.question;
       item.append(element('p', q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${q.choices[q.answer]}`, 'preview-answer'));
       const actions = element('div', undefined, 'actions');
@@ -95,6 +116,8 @@ const QuestionEditor = (() => {
         fields.explanation.value = q.explanation || '';
         fields.source.value = entry.customSource ? q.source.document : '';
         fields.location.value = entry.customSource ? String(q.source.location) : '';
+        setImage(q.image?.src || null);
+        fields.imageAlt.value = q.image?.alt || '';
         fields.add.textContent = '変更を反映';
         fields.cancel.hidden = false;
         updateType();
@@ -158,6 +181,11 @@ const QuestionEditor = (() => {
     };
     const explanation = fields.explanation.value.trim();
     if (explanation) question.explanation = explanation;
+    if (image) {
+      const alt = fields.imageAlt.value.trim();
+      if (!alt) { error('画像の説明を入力してください（画像が表示できないときに使います）。', fields.imageAlt); return; }
+      question.image = { src: image, alt };
+    }
     const entry = { question, number, customSource: Boolean(sourceName) };
     if (previous) questions[questions.indexOf(previous)] = entry;
     else { questions.push(entry); nextNumber++; }
@@ -242,6 +270,27 @@ const QuestionEditor = (() => {
     typeGroup.hidden = !allowWritten;
     form.append(typeGroup);
     fields.text = inputField(form, 'text', '問題文', true);
+    const imageGroup = element('div', undefined, 'manual-field manual-image');
+    const imageLabel = element('label', '画像（任意）', 'field-label');
+    imageLabel.htmlFor = 'manual-image-file';
+    fields.imageFile = element('input');
+    fields.imageFile.type = 'file'; fields.imageFile.id = 'manual-image-file';
+    fields.imageFile.accept = 'image/png,image/jpeg,image/webp,image/gif';
+    fields.imageFile.addEventListener('change', () => { const file = fields.imageFile.files?.[0]; if (file) attachImage(file); });
+    const hint = element('p', '画像ファイルを選ぶか、コピーした画像（スクリーンショットなど）をこの画面で貼り付け（Ctrl+V／⌘+V）できます。', 'muted');
+    fields.imagePreview = element('img', undefined, 'question-thumb');
+    fields.imagePreview.alt = '';
+    imageGroup.append(imageLabel, fields.imageFile, hint, fields.imagePreview);
+    fields.imageAlt = inputField(imageGroup, 'image-alt', '画像の説明（例：心臓の断面図。矢印で1か所を示している）');
+    fields.imageRemove = button('画像を外す');
+    fields.imageRemove.addEventListener('click', () => { if (!busy) { setImage(null); changed(); } });
+    imageGroup.append(fields.imageRemove);
+    form.append(imageGroup);
+    // コピーした画像の貼り付け。問題を作成中のときだけ受け付ける。
+    form.addEventListener('paste', event => {
+      const file = Array.from(event.clipboardData?.files || []).find(f => /^image\//.test(f.type));
+      if (file && !busy) { event.preventDefault(); attachImage(file); }
+    });
     const optionsGroup = element('fieldset', undefined, 'manual-choices');
     fields.choicesGroup = optionsGroup;
     optionsGroup.append(element('legend', '選択肢・正解'));
@@ -292,6 +341,26 @@ const QuestionEditor = (() => {
     fields.preview.addEventListener('click', preview);
     container.append(fields.count, fields.list, fields.preview);
     reset();
+  }
+  function setImage(src) {
+    image = src || null;
+    if (!fields?.imagePreview) return;
+    fields.imagePreview.hidden = !image;
+    if (image) fields.imagePreview.src = image; else fields.imagePreview.removeAttribute?.('src');
+    fields.imageRemove.hidden = !image;
+    if (fields.imageAlt.parentNode) fields.imageAlt.parentNode.hidden = !image;
+    if (!image) { fields.imageAlt.value = ''; if (fields.imageFile) fields.imageFile.value = ''; }
+  }
+  async function attachImage(file) {
+    const current = generation;
+    try {
+      const src = await ImageTools.shrink(file);
+      if (current !== generation) return;
+      setImage(src);
+      fields.cancel.hidden = false;
+      changed();
+      fields.imageAlt.focus();
+    } catch (e) { error(e.message || '画像を読み取れません。', fields.imageFile); }
   }
   function reset() {
     generation++;

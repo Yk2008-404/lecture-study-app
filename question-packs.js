@@ -5,7 +5,10 @@ const QuestionPacks = (() => {
   const MAX_BYTES = 2 * 1024 * 1024;
   const FORMATS = ['用語→定義', '定義→用語', 'その他'];
   const TYPES = ['選択肢', '正誤', '想起', '記述'];
-  const FIELDS = ['id', 'subject', 'source', 'format', 'questionType', 'text', 'choices', 'answer', 'explanation', 'importance'];
+  const FIELDS = ['id', 'subject', 'source', 'format', 'questionType', 'text', 'choices', 'answer', 'explanation', 'importance', 'image'];
+  // 問題の画像は埋め込み（data URI）で保存する。書き出したJSONだけで共有できるようにするため。
+  const IMAGE_SRC = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
+  const IMAGE_MAX = 700000;
   const FORBIDDEN_IDS = ['__proto__', 'constructor', 'prototype'];
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const object = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
@@ -18,6 +21,8 @@ const QuestionPacks = (() => {
     return JSON.stringify([
       q.subject, q.source.document, q.source.location, q.format, q.questionType,
       q.text, q.choices, q.answer, q.explanation || '', q.importance || 'B',
+      // 画像のない問題の照合値は従来と同じに保つ（既存の履歴・重複検査を変えない）。
+      ...(q.image ? [q.image.src, q.image.alt] : []),
     ]);
   }
 
@@ -130,6 +135,15 @@ const QuestionPacks = (() => {
       if (q.questionType === '正誤' && JSON.stringify(q.choices) !== JSON.stringify(['正しい', '誤り'])) bad('choices', '正誤形式は ["正しい", "誤り"] の順で指定する');
       if (own(q, 'importance') && !['A', 'B', 'C'].includes(q.importance)) bad('importance', 'A / B / C のいずれか');
       if (own(q, 'explanation') && typeof q.explanation !== 'string') bad('explanation', '解説は文字列。不要なら項目を省略する');
+      if (own(q, 'image')) {
+        if (!object(q.image)) bad('image', 'srcとaltを持つオブジェクトが必要');
+        else {
+          Object.keys(q.image).forEach((k) => { if (!['src', 'alt'].includes(k)) bad(`image.${k}`, k === 'file' ? '画像ファイルが見つからない。JSONと一緒に画像ファイルを選ぶ' : '未対応の画像項目'); });
+          if (typeof q.image.src !== 'string' || !IMAGE_SRC.test(q.image.src)) bad('image.src', 'PNG・JPEG・WebP・GIFのdata URIが必要');
+          else if (q.image.src.length > IMAGE_MAX) bad('image.src', '画像が大きすぎる（1枚あたり約500KBまで）');
+          if (!string(q.image.alt) || q.image.alt.length > 300) bad('image.alt', '画像の内容を説明する文字列（300文字以内）が必要');
+        }
+      }
     });
     if (errors.length) return { ok: false, errors };
     data.questions.forEach((q, i) => {
