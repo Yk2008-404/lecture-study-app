@@ -2,7 +2,7 @@
 
 // The distribution builder replaces this version with a digest of the app files.
 // If distributing these source files directly, change it after every app update.
-const CACHE_VERSION = 'course-bb13fcbf95fff538';
+const CACHE_VERSION = 'course-c665d9ea1800d5a0';
 const CACHE_PREFIX = `course-app-offline:${self.registration.scope}:`;
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const RUNTIME_FILES = [
@@ -69,6 +69,12 @@ self.addEventListener('activate', (event) => {
       .map((name) => caches.delete(name)));
     // Existing pages finish with their current code; the next opening uses this worker.
   })());
+});
+
+// 通常は学習中に版を切り替えない。例外として、問題入りの版の入口（学習を始める前）が、
+// 新しい問題データを前の版で読めなかったときにだけ、待機中の新しい版へすぐ切り替えを頼む。
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'activate-before-start') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {

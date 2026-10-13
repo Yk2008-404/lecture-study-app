@@ -11,12 +11,37 @@ window.studyBuiltInsReady = (() => {
   const CACHE_NAME = 'course-app-questions.v1';
   const KEY_STORE = 'course-app.key.v1';
   const MAX_CHARS = 16 * 1024 * 1024;
+  const RELOAD_FLAG = 'course-app.reloaded-for-update';
   const $ = (id) => document.getElementById(id);
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const base64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
   const object = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
   const fail = (message) => Object.assign(new Error(message), { shown: true });
 
+  /**
+   * 問題データを読めないのは、前の版のアプリが保存されたまま新しい問題が届いたときに起こりうる。
+   * 学習を始める前なので、待機中の新しい版があれば切り替えて開き直す（1回だけ）。切り替えたら true。
+   */
+  async function updateApp() {
+    try {
+      if (!navigator.serviceWorker || window.sessionStorage.getItem(RELOAD_FLAG)) return false;
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) return false;
+      await registration.update().catch(() => {});
+      const worker = registration.waiting || registration.installing;
+      if (!worker) return false;
+      window.sessionStorage.setItem(RELOAD_FLAG, '1');
+      await new Promise((resolve) => {
+        const done = () => { if (worker.state === 'activated' || worker.state === 'redundant') resolve(); };
+        worker.addEventListener('statechange', done);
+        worker.postMessage({ type: 'activate-before-start' });
+        setTimeout(resolve, 8000);
+        done();
+      });
+      window.location.reload();
+      return true;
+    } catch (_) { return false; }
+  }
   function sealedOf(text) {
     if (typeof text !== 'string' || text.length > MAX_CHARS) throw fail('問題データが大きすぎます。');
     const sealed = JSON.parse(text);
@@ -114,7 +139,8 @@ window.studyBuiltInsReady = (() => {
           gate.hidden = true;
           resolve(result);
         } catch (e) {
-          error.textContent = e.shown ? e.message : '問題を開けませんでした。開き直してください。';
+          if (e.shown && await updateApp()) return;
+          error.textContent = e.shown ? `${e.message} アプリの画面（タブ）をすべて閉じてから、開き直してください。` : '問題を開けませんでした。開き直してください。';
           error.hidden = false;
         } finally { busy = false; form.removeAttribute('aria-busy'); }
       };
@@ -138,10 +164,14 @@ window.studyBuiltInsReady = (() => {
       if (plain === null) forget();
       else {
         try { result = questionsOf(plain); }
-        catch (error) { $('course-gate').hidden = false; $('course-loading').hidden = true; $('course-form').hidden = true; $('course-error').textContent = error.message; $('course-error').hidden = false; return new Promise(() => {}); }
+        catch (error) {
+          if (await updateApp()) return new Promise(() => {});
+          error.message += ' アプリの画面（タブ）をすべて閉じてから、開き直してください。';
+          $('course-gate').hidden = false; $('course-loading').hidden = true; $('course-form').hidden = true; $('course-error').textContent = error.message; $('course-error').hidden = false; return new Promise(() => {}); }
       }
     }
     if (!result) result = await showGate(sealed, key ? '合言葉が変わりました。新しい合言葉を入力してください。' : '');
+    try { window.sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* なくてもよい */ }
     QUESTIONS.push(...result.questions);
     $('course-gate').hidden = true;
     const updated = $('course-updated');
