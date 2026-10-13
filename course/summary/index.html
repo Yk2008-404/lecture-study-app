@@ -45,17 +45,13 @@
   .card.revealed .is-correct-mark { display: inline; }
   .reveal { display: none; margin-top: .5rem; }
   .hidden-answers .card:not(.revealed) .reveal { display: inline-block; }
-  .gate { max-width: 420px; margin: 12vh auto 0; }
-  .gate .row { display: flex; gap: .4rem; margin-top: .4rem; }
-  .gate .row input { flex: 1; min-width: 0; font-size: 17px; }
-  .gate .primary { width: 100%; margin-top: 1rem; min-height: 48px; }
   .error { color: #c0392b; font-size: .9rem; }
   .toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 0; padding: 0; list-style: none; }
   .toc a { display: inline-block; padding: .2rem .7rem; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: .85rem; background: var(--surface); }
   [hidden] { display: none !important; }
   @media (max-width: 600px) { .toolbar { position: static; } }
   @media print {
-    .toolbar, .gate, .reveal, .no-print { display: none !important; }
+    .toolbar, .course-gate, .reveal, .no-print { display: none !important; }
     body { background: #fff; color: #000; }
     .card { break-inside: avoid; border-color: #bbb; }
     .hidden-answers .answer-area { display: none; }
@@ -64,21 +60,35 @@
 </head>
 <body>
 <main>
-  <section id="gate" class="gate" aria-labelledby="gate-title">
-    <p id="loading" class="muted">問題を読み込んでいます…</p>
-    <div id="ask" hidden>
-      <h1 id="gate-title">合言葉を入力</h1>
-      <p>問題入りの学習アプリと同じ合言葉です。</p>
+<div id="course-gate" class="course-gate" role="dialog" aria-modal="true" aria-labelledby="course-gate-title">
+  <div class="course-gate-box">
+    <p id="course-loading">問題を読み込んでいます…</p>
+    <div id="course-ask" hidden>
+    <h1 id="course-gate-title">合言葉を入力</h1>
+    <p>この学習アプリには講義の問題が入っています。受け取った合言葉を入力してください。</p>
     </div>
-    <form id="form" autocomplete="off" hidden>
-      <label for="passphrase">合言葉</label>
-      <div class="row"><input id="passphrase" type="password" required autocapitalize="off" autocorrect="off" spellcheck="false"><button id="show" type="button" aria-pressed="false" aria-controls="passphrase">表示</button></div>
-      <label class="muted"><input id="remember" type="checkbox" checked> この端末で覚える</label>
+    <form id="course-form" autocomplete="off" hidden>
+      <label for="course-passphrase">合言葉</label>
+      <div class="course-row"><input id="course-passphrase" type="password" required autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="受け取った合言葉"><button id="course-show" type="button" aria-pressed="false" aria-controls="course-passphrase">表示</button></div>
+      <label class="course-remember"><input id="course-remember" type="checkbox" checked> この端末で覚える</label>
       <button type="submit" class="primary">開く</button>
     </form>
-    <p id="error" role="alert" class="error" hidden></p>
+    <p id="course-error" role="alert" class="course-error" hidden></p>
     <noscript><p>このページを開くにはJavaScriptが必要です。</p></noscript>
-  </section>
+  </div>
+</div>
+<style>
+  .course-gate { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: var(--bg, #f5f6fa); overflow: auto; }
+  .course-gate[hidden] { display: none; }
+  .course-gate-box { width: 100%; max-width: 440px; }
+  .course-gate h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
+  .course-gate label { display: block; font-size: .85rem; font-weight: 650; margin-top: .8rem; }
+  .course-row { display: flex; gap: .4rem; margin-top: .4rem; }
+  .course-row input { flex: 1; min-width: 0; font-size: 17px; padding: .65rem .8rem; }
+  .course-gate .course-remember { display: flex; align-items: center; gap: .45rem; font-weight: 400; }
+  .course-gate button[type=submit] { width: 100%; margin-top: 1rem; min-height: 48px; }
+  .course-error { color: #c0392b; font-size: .85rem; margin-top: .8rem; }
+</style>
 
   <div id="content" hidden>
     <h1>問題のまとめ</h1>
@@ -94,6 +104,7 @@
   </div>
 </main>
 <script src="../question-packs.js"></script>
+<script src="../questions.js?v=course-8bc969b9916d"></script>
 <script src="summary.js"></script>
 </body>
 </html>

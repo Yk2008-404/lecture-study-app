@@ -1,13 +1,18 @@
 /**
- * 問題入りの版の questions.js（tools/build-course.cjs が通常の questions.js と差し替える）。
+ * 問題入りの版の questions.js（tools/build-course.cjs が通常の questions.js と差し替える）。問題のまとめ（summary/）も同じものを使う。
  * 合言葉で questions.enc.json を復号し、検査してから組込問題（QUESTIONS）として app.js に渡す。
- * 暗号は AES-256-GCM、鍵は合言葉から PBKDF2-SHA256 で作る。合言葉を知らない人に中身を見せないためのもので、
- * 合言葉を知っている人どうしの間の秘密は守れない。
+ *
+ * 形式 v2：問題は公開のたびに作る鍵（データ鍵）で AES-256-GCM 暗号化し、データ鍵を合言葉ごとの「鍵の枠」に入れる。
+ * 枠の鍵は合言葉から PBKDF2-SHA256 で作る。枠は通常（member）とゲスト（guest、期限つき）。
+ * ゲストは期限を過ぎるとこの端末でログアウトし、期限切れの枠は次の公開で取り除かれる（同じ合言葉では開けなくなる）。
+ * 合言葉を知らない人に中身を見せないためのもので、合言葉を知っている人どうしの間の秘密は守れない。
  */
 const QUESTIONS = [];
 window.studyBuiltInsReady = (() => {
   'use strict';
-  const DATA_URL = 'questions.enc.json';
+  // 学習アプリ（course/）からも、まとめ（course/summary/）からも同じデータを読む。
+  // questions.enc.json（v1）は、前の版の入口のために移行期間だけ並べて置く。この入口は v2 を読む。
+  const DATA_URL = new URL('questions.v2.json', document.currentScript ? document.currentScript.src : window.location.href).href;
   const CACHE_NAME = 'course-app-questions.v1';
   const KEY_STORE = 'course-app.key.v1';
   const MAX_CHARS = 16 * 1024 * 1024;
@@ -17,6 +22,9 @@ window.studyBuiltInsReady = (() => {
   const base64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
   const object = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
   const fail = (message) => Object.assign(new Error(message), { shown: true });
+  const b64 = (s) => typeof s === 'string' && s.length > 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(s);
+  const dateLabel = (iso) => new Date(iso).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' });
+  const expired = (slot) => slot.kind === 'guest' && !(Date.parse(slot.expiresAt) > Date.now());
 
   /**
    * 問題データを読めないのは、前の版のアプリが保存されたまま新しい問題が届いたときに起こりうる。
@@ -42,53 +50,68 @@ window.studyBuiltInsReady = (() => {
       return true;
     } catch (_) { return false; }
   }
+
+  /** 暗号化データの外枠の検査。v1（合言葉の鍵で直接暗号化）も読む。 */
   function sealedOf(text) {
     if (typeof text !== 'string' || text.length > MAX_CHARS) throw fail('問題データが大きすぎます。');
-    const sealed = JSON.parse(text);
-    const b64 = (s) => typeof s === 'string' && /^[A-Za-z0-9+/]+={0,2}$/.test(s);
-    if (!object(sealed) || sealed.v !== 1 || !Number.isInteger(sealed.iterations) || sealed.iterations < 100000 || sealed.iterations > 5000000
-      || !b64(sealed.salt) || !b64(sealed.iv) || !b64(sealed.data)) throw fail('問題データの形式が正しくありません。');
+    let sealed;
+    try { sealed = JSON.parse(text); } catch (_) { throw fail('問題データの形式が正しくありません。'); }
+    const iterations = (n) => Number.isInteger(n) && n >= 100000 && n <= 5000000;
+    if (object(sealed) && sealed.v === 1 && iterations(sealed.iterations) && b64(sealed.salt) && b64(sealed.iv) && b64(sealed.data)) {
+      return { iterations: sealed.iterations, data: { iv: sealed.iv, ct: sealed.data }, slots: [{ kind: 'member', salt: sealed.salt, direct: true }] };
+    }
+    const slotOk = (s) => object(s) && (s.kind === 'member' || (s.kind === 'guest' && typeof s.expiresAt === 'string' && !Number.isNaN(Date.parse(s.expiresAt))))
+      && b64(s.salt) && b64(s.iv) && b64(s.key);
+    if (!object(sealed) || sealed.v !== 2 || !iterations(sealed.iterations) || !object(sealed.data) || !b64(sealed.data.iv) || !b64(sealed.data.ct)
+      || !Array.isArray(sealed.slots) || !sealed.slots.length || sealed.slots.length > 200 || !sealed.slots.every(slotOk)) throw new Error('format');
     return sealed;
   }
   /** 最新の問題データ。つながらないときは前回読み込んだもの（オフライン用）。 */
   async function load() {
+    let text = null;
     try {
       const response = await fetch(DATA_URL, { cache: 'no-store', credentials: 'same-origin', redirect: 'error' });
-      if (!response.ok) throw new Error(String(response.status));
-      const text = await response.text();
-      const sealed = sealedOf(text);
+      if (response.ok) text = await response.text();
+    } catch (_) { /* 下で保存済みのものを使う */ }
+    if (text !== null) {
       try { await (await caches.open(CACHE_NAME)).put(DATA_URL, new Response(text, { headers: { 'Content-Type': 'application/json' } })); } catch (_) { /* 次回もオンラインなら読める */ }
-      return sealed;
-    } catch (error) {
+    } else {
+      try { const saved = await (await caches.open(CACHE_NAME)).match(DATA_URL); if (saved) text = await saved.text(); } catch (_) { /* 下の案内を出す */ }
+      if (text === null) throw fail('問題データを読み込めませんでした。インターネットにつないでから開き直してください。');
+    }
+    try { return sealedOf(text); }
+    catch (error) {
       if (error.shown) throw error;
-      try {
-        const saved = await (await caches.open(CACHE_NAME)).match(DATA_URL);
-        if (saved) return sealedOf(await saved.text());
-      } catch (_) { /* 下の案内を出す */ }
-      throw fail('問題データを読み込めませんでした。インターネットにつないでから開き直してください。');
+      // 前の版のアプリが新しい形式を読めない場合に備えて、待機中の新しい版へ切り替える。
+      if (await updateApp()) return new Promise(() => {});
+      throw fail('問題データの形式が正しくありません。アプリの画面（タブ）をすべて閉じてから、開き直してください。');
     }
   }
-  function rememberedKey(sealed) {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(KEY_STORE) || 'null');
-      return object(saved) && saved.salt === sealed.salt && saved.iterations === sealed.iterations && typeof saved.key === 'string' ? saved.key : null;
-    } catch (_) { return null; }
+  function remembered() {
+    try { const saved = JSON.parse(window.localStorage.getItem(KEY_STORE) || 'null'); return object(saved) && b64(saved.salt) && b64(saved.key) ? saved : null; }
+    catch (_) { return null; }
   }
   function forget() { try { window.localStorage.removeItem(KEY_STORE); } catch (_) { /* 保存していない */ } }
-  async function derive(passphrase, sealed) {
+  async function derive(passphrase, salt, iterations) {
     const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase.trim().normalize('NFKC')), 'PBKDF2', false, ['deriveBits']);
-    return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes(sealed.salt), iterations: sealed.iterations }, material, 256);
+    return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes(salt), iterations }, material, 256);
   }
-  /** 復号できなければ null（合言葉の違い）。 */
-  async function open(raw, sealed) {
+  async function decrypt(raw, iv, ct, aad) {
+    const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(iv), ...(aad ? { additionalData: new TextEncoder().encode(aad) } : {}) }, key, bytes(ct));
+  }
+  const slotAad = (slot) => `course-slot:${slot.kind}:${slot.expiresAt || ''}`;
+  /** 枠の鍵で問題を開く。開けなければ null（合言葉の違い・改ざん）。 */
+  async function openWith(slotKey, slot, sealed) {
     try {
-      const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
-      return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(sealed.iv) }, key, bytes(sealed.data)));
+      const dataKey = slot.direct ? slotKey : await decrypt(slotKey, slot.iv, slot.key, slotAad(slot));
+      return new TextDecoder().decode(await decrypt(dataKey, sealed.data.iv, sealed.data.ct));
     } catch (_) { return null; }
   }
   /** 復号した内容を、取り込みと同じ検査にかける。1件でも不正なら使わない。 */
   function questionsOf(plain) {
-    const data = JSON.parse(plain);
+    let data;
+    try { data = JSON.parse(plain); } catch (_) { throw fail('問題データの形式が正しくありません。'); }
     if (!object(data) || data.v !== 1 || !Array.isArray(data.questions) || !data.questions.length) throw fail('問題データの形式が正しくありません。');
     const subjects = new Map();
     for (const q of data.questions) {
@@ -104,6 +127,20 @@ window.studyBuiltInsReady = (() => {
     }
     if (new Set(accepted.map((q) => q.id)).size !== accepted.length) throw fail('問題データに同じIDの問題があります。');
     return { questions: accepted, updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : '' };
+  }
+  /** 開いた内容を検査する。前の版で読めない場合は新しい版へ切り替える。 */
+  async function checked(plain) {
+    try { return questionsOf(plain); }
+    catch (error) {
+      if (error.shown && await updateApp()) return new Promise(() => {});
+      if (error.shown) error.message += ' アプリの画面（タブ）をすべて閉じてから、開き直してください。';
+      throw error;
+    }
+  }
+  function stop(message) {
+    $('course-gate').hidden = false; $('course-loading').hidden = true; $('course-form').hidden = true;
+    $('course-error').textContent = message; $('course-error').hidden = false;
+    return new Promise(() => {}); // 問題がないまま学習画面を出さない
   }
   function showGate(sealed, message) {
     const gate = $('course-gate'), form = $('course-form'), input = $('course-passphrase'), error = $('course-error'), show = $('course-show');
@@ -128,19 +165,31 @@ window.studyBuiltInsReady = (() => {
         if (busy || !input.value.trim()) return;
         busy = true; form.setAttribute('aria-busy', 'true'); error.hidden = true;
         try {
-          const raw = await derive(input.value, sealed);
-          const plain = await open(raw, sealed);
-          if (plain === null) { error.textContent = '合言葉が違います。「表示」を押して、入力した文字を確かめてください。'; error.hidden = false; input.select(); return; }
-          const result = questionsOf(plain);
+          // 合言葉に合う枠を探す（枠ごとにソルトが違う）。期限切れのゲスト枠は使わない。
+          let found = null, expiredMatch = false;
+          for (const slot of sealed.slots) {
+            const slotKey = await derive(input.value, slot.salt, sealed.iterations);
+            const plain = await openWith(slotKey, slot, sealed);
+            if (plain === null) continue;
+            if (expired(slot)) { expiredMatch = true; continue; }
+            found = { slot, slotKey, plain }; break;
+          }
+          if (!found) {
+            error.textContent = expiredMatch ? 'このゲスト用の合言葉は期限が切れています。' : '合言葉が違います。「表示」を押して、入力した文字を確かめてください。';
+            error.hidden = false; input.select(); return;
+          }
+          const result = await checked(found.plain);
           if ($('course-remember').checked) {
-            try { window.localStorage.setItem(KEY_STORE, JSON.stringify({ salt: sealed.salt, iterations: sealed.iterations, key: base64(raw) })); } catch (_) { /* 次回も入力する */ }
+            try {
+              window.localStorage.setItem(KEY_STORE, JSON.stringify({ salt: found.slot.salt, iterations: sealed.iterations, key: base64(found.slotKey),
+                kind: found.slot.kind, ...(found.slot.expiresAt ? { expiresAt: found.slot.expiresAt } : {}) }));
+            } catch (_) { /* 次回も入力する */ }
           } else forget();
           input.value = '';
           gate.hidden = true;
-          resolve(result);
+          resolve({ ...result, slot: found.slot });
         } catch (e) {
-          if (e.shown && await updateApp()) return;
-          error.textContent = e.shown ? `${e.message} アプリの画面（タブ）をすべて閉じてから、開き直してください。` : '問題を開けませんでした。開き直してください。';
+          error.textContent = e.shown ? e.message : '問題を開けませんでした。開き直してください。';
           error.hidden = false;
         } finally { busy = false; form.removeAttribute('aria-busy'); }
       };
@@ -152,31 +201,40 @@ window.studyBuiltInsReady = (() => {
     if (document.readyState === 'loading') await new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
     let sealed;
     try { sealed = await load(); }
-    catch (error) {
-      $('course-gate').hidden = false; $('course-loading').hidden = true; $('course-form').hidden = true;
-      $('course-error').textContent = error.message; $('course-error').hidden = false;
-      return new Promise(() => {}); // 問題がないまま学習画面を出さない
-    }
-    let result = null;
-    const key = rememberedKey(sealed);
-    if (key) {
-      const plain = await open(bytes(key), sealed);
-      if (plain === null) forget();
-      else {
-        try { result = questionsOf(plain); }
-        catch (error) {
-          if (await updateApp()) return new Promise(() => {});
-          error.message += ' アプリの画面（タブ）をすべて閉じてから、開き直してください。';
-          $('course-gate').hidden = false; $('course-loading').hidden = true; $('course-form').hidden = true; $('course-error').textContent = error.message; $('course-error').hidden = false; return new Promise(() => {}); }
+    catch (error) { return stop(error.message); }
+    let result = null, message = '';
+    const saved = remembered();
+    if (saved) {
+      const slot = sealed.slots.find((s) => s.salt === saved.salt);
+      if (!slot || saved.iterations !== sealed.iterations) {
+        forget();
+        message = saved.kind === 'guest' ? 'ゲストの期限が切れました。' : '合言葉が変わりました。新しい合言葉を入力してください。';
+      } else if (expired(slot)) {
+        forget();
+        message = 'ゲストの期限が切れました。';
+      } else {
+        const plain = await openWith(bytes(saved.key), slot, sealed);
+        if (plain === null) { forget(); message = '合言葉が変わりました。新しい合言葉を入力してください。'; }
+        else {
+          try { result = { ...(await checked(plain)), slot }; }
+          catch (error) { return stop(error.shown ? error.message : '問題を開けませんでした。開き直してください。'); }
+        }
       }
     }
-    if (!result) result = await showGate(sealed, key ? '合言葉が変わりました。新しい合言葉を入力してください。' : '');
+    if (!result) result = await showGate(sealed, message);
     try { window.sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* なくてもよい */ }
     QUESTIONS.push(...result.questions);
     $('course-gate').hidden = true;
+    const guestUntil = result.slot.kind === 'guest' ? result.slot.expiresAt : null;
+    window.studyCourseInfo = { updatedAt: result.updatedAt, guestUntil };
     const updated = $('course-updated');
-    if (updated && result.updatedAt) updated.textContent = `問題の更新：${result.updatedAt}`;
+    if (updated) updated.textContent = (result.updatedAt ? `問題の更新：${result.updatedAt}` : '') + (guestUntil ? `　ゲスト（${dateLabel(guestUntil)}まで）` : '');
     const forgetButton = $('course-forget');
     if (forgetButton) forgetButton.onclick = () => { forget(); window.location.reload(); };
+    // ゲストが開いたまま期限を迎えたら、その時点でログアウトする。
+    if (guestUntil) {
+      const wait = Date.parse(guestUntil) - Date.now();
+      if (wait < 2147483647) setTimeout(() => { forget(); window.location.reload(); }, Math.max(0, wait));
+    }
   })();
 })();
