@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>問題のまとめ</title>
+<link rel="icon" href="../icons/app-icon.svg" type="image/svg+xml">
+<style>
+  :root { --bg: #f5f6fa; --surface: #fff; --fg: #1d1f2b; --muted: #636779; --border: #dfe1ea; --accent: #5253d9; --accent-soft: #ececfd; --correct: #1f8a5b; --correct-soft: #e5f5ed; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161f; --surface: #1d2030; --fg: #eceef6; --muted: #a2a6b8; --border: #30344a; --accent: #a7a8ff; --accent-soft: #2a2c4a; --correct: #6fd3a2; --correct-soft: #1c3329; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 15px; line-height: 1.75; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; padding-bottom: .3rem; border-bottom: 2px solid var(--accent); }
+  h3 { font-size: 1rem; margin: 1.5rem 0 .5rem; color: var(--accent); }
+  .muted { color: var(--muted); font-size: .85rem; }
+  a { color: var(--accent); }
+  button, input, select { font: inherit; color: inherit; }
+  button { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: .45rem .9rem; cursor: pointer; min-height: 40px; }
+  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  input[type=search], input[type=password], input[type=text], select { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: .5rem .75rem; min-height: 40px; }
+  .toolbar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .75rem 0; background: var(--bg); border-bottom: 1px solid var(--border); }
+  .toolbar input[type=search] { flex: 1 1 200px; min-width: 0; }
+  .toolbar label { display: inline-flex; align-items: center; gap: .35rem; font-size: .9rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; margin: .7rem 0; }
+  .card .meta { color: var(--muted); font-size: .8rem; margin-bottom: .2rem; }
+  .card .text { font-weight: 600; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+  .card ol { margin: 0; padding-left: 1.5rem; }
+  .card li { margin: .15rem 0; overflow-wrap: anywhere; }
+  .card img { max-width: 100%; height: auto; border-radius: 8px; margin: .3rem 0 .6rem; }
+  .answer-area { margin-top: .6rem; }
+  .answer { background: var(--correct-soft); color: var(--correct); border-radius: 8px; padding: .35rem .7rem; font-weight: 600; display: inline-block; }
+  .explanation { margin: .5rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .92rem; }
+  .is-correct { color: var(--correct); font-weight: 600; }
+  .hidden-answers .answer-area, .hidden-answers .is-correct-mark { display: none; }
+  .hidden-answers .is-correct { color: inherit; font-weight: inherit; }
+  .card.revealed .answer-area { display: block; }
+  .card.revealed .is-correct { color: var(--correct); font-weight: 600; }
+  .card.revealed .is-correct-mark { display: inline; }
+  .reveal { display: none; margin-top: .5rem; }
+  .hidden-answers .card:not(.revealed) .reveal { display: inline-block; }
+  .gate { max-width: 420px; margin: 12vh auto 0; }
+  .gate .row { display: flex; gap: .4rem; margin-top: .4rem; }
+  .gate .row input { flex: 1; min-width: 0; font-size: 17px; }
+  .gate .primary { width: 100%; margin-top: 1rem; min-height: 48px; }
+  .error { color: #c0392b; font-size: .9rem; }
+  .toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 0; padding: 0; list-style: none; }
+  .toc a { display: inline-block; padding: .2rem .7rem; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: .85rem; background: var(--surface); }
+  [hidden] { display: none !important; }
+  @media (max-width: 600px) { .toolbar { position: static; } }
+  @media print {
+    .toolbar, .gate, .reveal, .no-print { display: none !important; }
+    body { background: #fff; color: #000; }
+    .card { break-inside: avoid; border-color: #bbb; }
+    .hidden-answers .answer-area { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section id="gate" class="gate" aria-labelledby="gate-title">
+    <p id="loading" class="muted">問題を読み込んでいます…</p>
+    <div id="ask" hidden>
+      <h1 id="gate-title">合言葉を入力</h1>
+      <p>問題入りの学習アプリと同じ合言葉です。</p>
+    </div>
+    <form id="form" autocomplete="off" hidden>
+      <label for="passphrase">合言葉</label>
+      <div class="row"><input id="passphrase" type="password" required autocapitalize="off" autocorrect="off" spellcheck="false"><button id="show" type="button" aria-pressed="false" aria-controls="passphrase">表示</button></div>
+      <label class="muted"><input id="remember" type="checkbox" checked> この端末で覚える</label>
+      <button type="submit" class="primary">開く</button>
+    </form>
+    <p id="error" role="alert" class="error" hidden></p>
+    <noscript><p>このページを開くにはJavaScriptが必要です。</p></noscript>
+  </section>
+
+  <div id="content" hidden>
+    <h1>問題のまとめ</h1>
+    <p class="muted"><span id="summary-count"></span> <span id="summary-updated"></span> ・ <a href="../">学習アプリを開く</a></p>
+    <div class="toolbar no-print" role="search">
+      <input id="search" type="search" placeholder="キーワードで絞り込む" aria-label="キーワードで絞り込む">
+      <select id="lecture-filter" aria-label="講義回で絞り込む"></select>
+      <label><input id="hide-answers" type="checkbox"> 答えを隠す</label>
+      <button id="print" type="button">印刷</button>
+    </div>
+    <p id="no-match" class="muted" hidden>当てはまる問題がありません。</p>
+    <div id="list"></div>
+  </div>
+</main>
+<script src="../question-packs.js"></script>
+<script src="summary.js"></script>
+</body>
+</html>
