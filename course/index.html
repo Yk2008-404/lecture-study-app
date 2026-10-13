@@ -131,11 +131,17 @@
   .choice { display: flex; align-items: flex-start; justify-content: flex-start; gap: .85rem; width: 100%; min-height: 64px; padding: .95rem 1rem; text-align: left; font-weight: 500; line-height: 1.8; background: var(--inset); border-radius: 14px; }
   .choice::before { content: counter(choice, upper-alpha); display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: .75rem; font-weight: 650; line-height: 1; color: var(--muted); }
   .choice:disabled { cursor: default; opacity: .6; }
+  /* 複数選択で選んでいる選択肢。回答後は下の正解・不正解の色を優先する。 */
+  .choice[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .choice[aria-pressed="true"]::before { content: '✓'; color: var(--accent); border-color: var(--accent); }
   .choice.is-answer, .choice.is-wrong { opacity: 1; font-weight: 600; }
   .choice.is-answer { border-color: var(--correct); color: var(--correct); background: var(--correct-soft); }
   .choice.is-answer::before { content: '✓'; color: var(--correct); border-color: var(--correct); }
   .choice.is-wrong { border-color: var(--incorrect); color: var(--incorrect); background: var(--incorrect-soft); }
   .choice.is-wrong::before { content: '×'; color: var(--incorrect); border-color: var(--incorrect); }
+  .choice.is-missed { border-style: dashed; }
+  .multi-submit { list-style: none; margin-top: .3rem; }
+  .multi-submit button { width: 100%; min-height: 52px; }
   .feedback { min-height: 1.8em; margin: 1.05rem 0; font-weight: 650; font-size: .88rem; }
   .feedback.is-correct { color: var(--correct); }
   .feedback.is-incorrect { color: var(--incorrect); }
@@ -793,10 +799,10 @@ B. dog
 
 <!-- ?v= はキャッシュ対策。スクリプトを変更したら番号を上げる。 -->
 <script src="questions.js?v=course-ead9358a956a"></script>
-<script src="question-packs.js?v=20261013-lecture"></script>
+<script src="question-packs.js?v=20261013-multi"></script>
 <script src="legacy-identities.js?v=20260922-legacy64"></script>
 <script src="storage.js?v=20261006-written"></script>
-<script src="scheduler.js?v=20261006-written"></script>
+<script src="scheduler.js?v=20261013-multi"></script>
 <script src="pack-help.js?v=20260922-legacy64"></script>
 <script src="vendor/fflate-0.8.2.js"></script>
 <script src="vendor/qrcode-generator-2.0.4.js"></script>
@@ -804,11 +810,11 @@ B. dog
 <script src="document-reader.js?v=20261006-import"></script>
 <script src="question-import.js?v=20261006-written"></script>
 <script src="question-editor.js?v=20261006-desktop"></script>
-<script src="subject-manager.js?v=20261013-lecture"></script>
+<script src="subject-manager.js?v=20261013-multi"></script>
 <script src="written-practice.js?v=20261006-written"></script>
 <script src="flashcards.js?v=20261007-cards"></script>
 <script src="whats-new.js?v=20261007-notes"></script>
-<script src="app.js?v=20261013-lecture"></script>
+<script src="app.js?v=20261013-multi"></script>
 <script src="install-support.js"></script>
 </body>
 </html>

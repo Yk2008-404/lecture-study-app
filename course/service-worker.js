@@ -2,7 +2,7 @@
 
 // The distribution builder replaces this version with a digest of the app files.
 // If distributing these source files directly, change it after every app update.
-const CACHE_VERSION = 'course-eedf0136a7d41b45';
+const CACHE_VERSION = 'course-bb13fcbf95fff538';
 const CACHE_PREFIX = `course-app-offline:${self.registration.scope}:`;
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 const RUNTIME_FILES = [

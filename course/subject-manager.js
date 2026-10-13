@@ -173,7 +173,7 @@ const SubjectManager = (() => {
         const choices = element('ol');
         q.choices.forEach((choice) => choices.append(element('li', choice)));
         item.append(choices);
-        item.append(element('p', q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${q.choices[q.answer]}`, 'preview-answer'));
+        item.append(element('p', q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${QuestionPacks.answerText(q)}`, 'preview-answer'));
         item.append(element('p', q.explanation || '解説なし'));
         item.append(element('p', `出典：${q.source.document} / ${q.source.location}`, 'result-source'));
         list.append(item);

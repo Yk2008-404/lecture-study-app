@@ -4,7 +4,9 @@ const QuestionPacks = (() => {
   const SCHEMA_VERSION = 1;
   const MAX_BYTES = 2 * 1024 * 1024;
   const FORMATS = ['用語→定義', '定義→用語', 'その他'];
-  const TYPES = ['選択肢', '正誤', '想起', '記述'];
+  const TYPES = ['選択肢', '正誤', '想起', '記述', '複数選択'];
+  // 複数選択：answer は正解の番号の配列（昇順・重複なし）。選んだ組み合わせが完全に一致したときだけ正解。
+  const MULTI = '複数選択', MULTI_MIN_CHOICES = 3, MULTI_MAX_CHOICES = 8;
   const FIELDS = ['id', 'subject', 'source', 'format', 'questionType', 'text', 'choices', 'answer', 'explanation', 'importance', 'image'];
   // 問題の画像は埋め込み（data URI）で保存する。書き出したJSONだけで共有できるようにするため。
   const IMAGE_SRC = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/;
@@ -13,7 +15,7 @@ const QuestionPacks = (() => {
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
   const object = (o) => o !== null && typeof o === 'object' && !Array.isArray(o);
   const string = (s) => typeof s === 'string' && s.trim().length > 0;
-  const supported = (q) => q.questionType === '選択肢' || q.questionType === '正誤' || q.questionType === '記述';
+  const supported = (q) => q.questionType === '選択肢' || q.questionType === '正誤' || q.questionType === '記述' || q.questionType === MULTI;
   const clone = (o) => JSON.parse(JSON.stringify(o));
 
   /** キー順に依存しない照合。IDは含めず、既定値の表現差を吸収する。 */
@@ -130,7 +132,13 @@ const QuestionPacks = (() => {
           q.choices.forEach((c, j) => { if (!string(c)) bad(`choices[${j}]`, '空でない文字列が必要'); });
           if (new Set(q.choices).size !== q.choices.length) bad('choices', '同一の選択肢が重複している');
         }
-        if (!Number.isInteger(q.answer) || q.answer < 0 || !Array.isArray(q.choices) || q.answer >= q.choices.length) bad('answer', '0から選択肢数−1までの整数が必要');
+        if (q.questionType === MULTI) {
+          if (Array.isArray(q.choices) && (q.choices.length < MULTI_MIN_CHOICES || q.choices.length > MULTI_MAX_CHOICES)) bad('choices', `複数選択は${MULTI_MIN_CHOICES}〜${MULTI_MAX_CHOICES}個の選択肢が必要`);
+          const count = Array.isArray(q.choices) ? q.choices.length : 0;
+          if (!Array.isArray(q.answer) || !q.answer.length || !q.answer.every((n, k) => Number.isInteger(n) && n >= 0 && n < count && (k === 0 || n > q.answer[k - 1]))) {
+            bad('answer', '複数選択は正解の番号（0始まり）を小さい順に重複なく並べた配列が必要');
+          }
+        } else if (!Number.isInteger(q.answer) || q.answer < 0 || !Array.isArray(q.choices) || q.answer >= q.choices.length) bad('answer', '0から選択肢数−1までの整数が必要');
       }
       if (q.questionType === '正誤' && JSON.stringify(q.choices) !== JSON.stringify(['正しい', '誤り'])) bad('choices', '正誤形式は ["正しい", "誤り"] の順で指定する');
       if (own(q, 'importance') && !['A', 'B', 'C'].includes(q.importance)) bad('importance', 'A / B / C のいずれか');
@@ -159,7 +167,7 @@ const QuestionPacks = (() => {
     const summary = { total: questions.length, choice: 0, trueFalse: 0, recall: 0, written: 0, playable: 0, explained: 0, sources: [] };
     const sources = new Set();
     questions.forEach((q) => {
-      if (q.questionType === '選択肢') summary.choice++;
+      if (q.questionType === '選択肢' || q.questionType === MULTI) summary.choice++;
       if (q.questionType === '正誤') summary.trueFalse++;
       if (q.questionType === '想起') summary.recall++;
       if (q.questionType === '記述') summary.written++;
@@ -206,10 +214,28 @@ const QuestionPacks = (() => {
     return rest && rest !== '本文' ? `第${n}回／${rest}` : `第${n}回`;
   }
 
+  /** 正解の番号の一覧（複数選択は配列のまま、それ以外は1つ）。記述は空。 */
+  const correctIndexes = (q) => (q.questionType === '記述' ? [] : q.questionType === MULTI ? q.answer.slice() : [q.answer]);
+  /** 回答が正解か。複数選択は、選んだ番号の組み合わせが正解と完全に一致したときだけ正解。 */
+  function isCorrectAnswer(q, selected) {
+    if (q.questionType !== MULTI) return selected === q.answer;
+    if (!Array.isArray(selected)) return false;
+    const chosen = [...new Set(selected)].sort((a, b) => a - b);
+    return chosen.length === q.answer.length && chosen.every((n, k) => n === q.answer[k]);
+  }
+  /** 回答・正解の表示用の文字列。複数選択は「A」「B」のように並べる。 */
+  function answerText(q, selected = q.answer) {
+    if (q.questionType === '記述') return String(selected ?? '');
+    const list = Array.isArray(selected) ? selected : [selected];
+    const texts = list.filter((n) => Number.isInteger(n) && q.choices[n] !== undefined).map((n) => q.choices[n]);
+    if (q.questionType !== MULTI) return texts[0] ?? '';
+    return texts.length ? texts.map((t) => `「${t}」`).join('') : '（選択なし）';
+  }
+
   function exportSubject(questions, subject) {
     const selected = questions.filter((q) => q.subject === subject);
     if (!selected.length) throw new Error('書き出せる登録問題は0問。この科目の問題セットを先に登録する');
     return { schemaVersion: SCHEMA_VERSION, subject, questions: clone(selected) };
   }
-  return { SCHEMA_VERSION, MAX_BYTES, FORMATS, TYPES, parse, validate, summarize, signature, fingerprint, supported, exportSubject, lecture, lectureLabel, withLecture };
+  return { SCHEMA_VERSION, MAX_BYTES, FORMATS, TYPES, MULTI, parse, validate, summarize, signature, fingerprint, supported, exportSubject, lecture, lectureLabel, withLecture, correctIndexes, isCorrectAnswer, answerText };
 })();

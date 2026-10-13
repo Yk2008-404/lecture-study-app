@@ -109,16 +109,16 @@
     item.append(el('p', `問${index} ・ ${q.questionType} ・ ${location}`, 'meta'));
     item.append(el('p', q.text, 'text'));
     if (q.image) { const image = el('img'); image.src = q.image.src; image.alt = q.image.alt; item.append(image); }
-    if (q.questionType === '選択肢' || q.questionType === '想起') {
+    if (q.questionType === '選択肢' || q.questionType === '想起' || q.questionType === QuestionPacks.MULTI) {
       const list = el('ol');
       q.choices.forEach((choice, i) => {
         const li = el('li', choice);
-        if (i === q.answer) { li.classList.add('is-correct'); li.append(el('span', '（正解）', 'is-correct-mark')); }
+        if (QuestionPacks.correctIndexes(q).includes(i)) { li.classList.add('is-correct'); li.append(el('span', '（正解）', 'is-correct-mark')); }
         list.append(li);
       });
       item.append(list);
     }
-    const answer = q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${q.choices[q.answer]}`;
+    const answer = q.questionType === '記述' ? `模範解答：${q.answer}` : `正解：${QuestionPacks.answerText(q)}`;
     const area = el('div', undefined, 'answer-area');
     area.append(el('span', answer, 'answer'));
     if (q.explanation) area.append(el('p', q.explanation, 'explanation'));

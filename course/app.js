@@ -34,7 +34,9 @@ const QUESTION_MODES = { all: null, choice: '選択肢', truefalse: '正誤', wr
 const QUESTION_MODE_KEY = 'course-app.question-mode.v1';
 let questionMode = 'all';
 try { const saved = window.localStorage.getItem(QUESTION_MODE_KEY); if (Object.hasOwn(QUESTION_MODES, saved)) questionMode = saved; } catch (_) { /* 記憶できなくても「すべて」で使える */ }
-const inQuestionMode = (question) => !QUESTION_MODES[questionMode] || question.questionType === QUESTION_MODES[questionMode];
+// 「選択問題だけ」には複数選択も含める。
+const typeInMode = (type, mode) => !QUESTION_MODES[mode] || type === QUESTION_MODES[mode] || (mode === 'choice' && type === QuestionPacks.MULTI);
+const inQuestionMode = (question) => typeInMode(question.questionType, questionMode);
 /** 今の形式の設定で出題できる問題か。 */
 const askable = (question) => canAskQuestion(question) && inQuestionMode(question);
 async function changeQuestionMode(event) {
@@ -602,7 +604,7 @@ async function analyzeWithAi() {
   const rate = (a) => a.correct / a.attempts;
   const areas = data.areas.sort((a, b) => rate(a) - rate(b) || b.attempts - a.attempts).slice(0, 30).map((a) => ({ area: a.name.slice(0, 600), attempts: a.attempts, correct: a.correct }));
   const samples = data.wrong.slice(0, 30).map((q) => ({ area: areaOf(q).slice(0, 600), text: q.text.slice(0, 2000),
-    answer: String(q.questionType === '記述' ? q.answer : q.choices[q.answer]).slice(0, 2000), ...(q.explanation ? { explanation: q.explanation.slice(0, 2000) } : {}),
+    answer: QuestionPacks.answerText(q).slice(0, 2000), ...(q.explanation ? { explanation: q.explanation.slice(0, 2000) } : {}),
     ...(Number.isInteger(data.latest.get(q.id)?.selected) && q.choices[data.latest.get(q.id).selected] ? { chosen: q.choices[data.latest.get(q.id).selected].slice(0, 2000) } : {}) }));
   const run = ++desktopRun;
   desktopOperation = 'analyze'; updateDesktopControls();
@@ -807,6 +809,8 @@ function renderSessionProgress() {
   progress.value = state.results.length;
 }
 
+/** 表示中の複数選択の「この答えで回答する」ボタン（それ以外の問題では null）。 */
+let multiSubmit = null;
 async function renderQuestion() {
   const question = state.questions[state.index];
   if (!canAskQuestion(question)) throw new Error('この問題はここでは出題できません。記述はPC専用アプリで使えます。');
@@ -835,8 +839,10 @@ async function renderQuestion() {
     if (question.image) { image.src = question.image.src; image.alt = question.image.alt; }
     else { image.removeAttribute?.('src'); image.alt = ''; }
   }
+  const multi = question.questionType === QuestionPacks.MULTI;
   document.getElementById('quiz-note').textContent = question.questionType === '記述'
     ? '下書き・記録はこの端末に保存されます。'
+    : multi ? '当てはまるものをすべて選び、「この答えで回答する」を押してください。すべて合っていれば正解です。'
     : '回答は自動保存。解説は終了後に表示します。';
 
   const list = document.getElementById('choices');
@@ -844,16 +850,39 @@ async function renderQuestion() {
   list.hidden = question.questionType === '記述';
   renderWritten(question, writtenDraft);
 
+  // 複数選択は、押すたびに選ぶ・外すを切り替え、「この答えで回答する」で確定する。
+  const picked = new Set();
+  const submit = document.createElement('button');
+  multiSubmit = multi ? submit : null;
   question.choices.forEach((choice, i) => {
     const li = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'choice';
     button.textContent = choice;
-    button.addEventListener('click', safeAction(() => answer(i)));
+    if (multi) {
+      button.setAttribute('aria-pressed', 'false');
+      button.addEventListener('click', () => {
+        if (state.answered) return;
+        if (picked.has(i)) picked.delete(i); else picked.add(i);
+        button.setAttribute('aria-pressed', String(picked.has(i)));
+        submit.disabled = picked.size === 0;
+      });
+    } else button.addEventListener('click', safeAction(() => answer(i)));
     li.appendChild(button);
     list.appendChild(li);
   });
+  if (multi) {
+    const li = document.createElement('li');
+    li.className = 'multi-submit';
+    submit.type = 'button';
+    submit.className = 'primary';
+    submit.textContent = 'この答えで回答する';
+    submit.disabled = true;
+    submit.addEventListener('click', safeAction(() => answer([...picked].sort((a, b) => a - b))));
+    li.appendChild(submit);
+    list.appendChild(li);
+  }
 
   const feedback = document.getElementById('feedback');
   feedback.textContent = '';
@@ -868,7 +897,7 @@ async function answer(selected) {
   if (state.questions[state.index].questionType === '記述') return;
   quizBusy = true;
   const question = state.questions[state.index];
-  const isCorrect = selected === question.answer;
+  const isCorrect = QuestionPacks.isCorrectAnswer(question, selected);
   const now = new Date();
   try {
     await Storage.recordAnswer(question.id, {
@@ -885,13 +914,18 @@ async function answer(selected) {
     state.answered = true;
     state.results.push({ question, selected, isCorrect });
     renderSessionProgress();
+    const correct = new Set(QuestionPacks.correctIndexes(question));
+    const chosen = new Set(Array.isArray(selected) ? selected : [selected]);
     document.querySelectorAll('#choices .choice').forEach((button, i) => {
       button.disabled = true;
-      if (i === question.answer) button.classList.add('is-answer');
-      else if (i === selected) button.classList.add('is-wrong');
+      if (correct.has(i)) { button.classList.add('is-answer'); if (!chosen.has(i)) button.classList.add('is-missed'); }
+      else if (chosen.has(i)) button.classList.add('is-wrong');
     });
+    if (multiSubmit) multiSubmit.disabled = true;
     const feedback = document.getElementById('feedback');
-    feedback.textContent = isCorrect ? '正解' : `不正解：正解は「${question.choices[question.answer]}」`;
+    feedback.textContent = isCorrect ? '正解' : question.questionType === QuestionPacks.MULTI
+      ? `不正解：正解は${QuestionPacks.answerText(question)}`
+      : `不正解：正解は「${question.choices[question.answer]}」`;
     feedback.className = `feedback ${isCorrect ? 'is-correct' : 'is-incorrect'}`;
     const next = document.getElementById('next');
     next.hidden = false;
@@ -1167,8 +1201,8 @@ function appendResultItem(list, result) {
     const detail = document.createElement('p');
     detail.className = 'result-detail';
     detail.textContent =
-      `あなたの解答: ${result.question.choices[result.selected]}` +
-      ` / 正解: ${result.question.choices[result.question.answer]}`;
+      `あなたの解答: ${QuestionPacks.answerText(result.question, result.selected)}` +
+      ` / 正解: ${QuestionPacks.answerText(result.question)}`;
     li.appendChild(detail);
   }
 
@@ -1185,7 +1219,7 @@ function appendResultItem(list, result) {
     source.textContent = `出典：${result.question.source.document} / ${result.question.source.location}`;
     li.appendChild(source);
   }
-  if (desktopBridge?.explain && !result.isCorrect) {
+  if (desktopBridge?.explain && !result.isCorrect && result.question.questionType !== QuestionPacks.MULTI) {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'why-button ai-only'; button.textContent = 'なぜ間違えた？（AIが解説）';
     const output = document.createElement('div');
@@ -1326,7 +1360,7 @@ async function renderStartNote() {
   const all = questionsInScope();
   const asked = all.filter(canAskQuestion);
   // 形式ごとの問題数を表示し、0問の形式は選べないようにする（選んでいた形式が0問になったら「すべて」に戻す）。
-  const modeCounts = Object.fromEntries(Object.entries(QUESTION_MODES).map(([mode, type]) => [mode, type ? asked.filter((q) => q.questionType === type).length : asked.length]));
+  const modeCounts = Object.fromEntries(Object.keys(QUESTION_MODES).map((mode) => [mode, asked.filter((q) => typeInMode(q.questionType, mode)).length]));
   const modeUsable = (mode) => mode === 'all' || (modeCounts[mode] > 0 && (mode !== 'written' || !!desktopBridge));
   if (!modeUsable(questionMode)) questionMode = 'all';
   const modeInputs = Array.from(document.getElementById('question-mode')?.querySelectorAll?.('input[name="question-mode"]') || []);
