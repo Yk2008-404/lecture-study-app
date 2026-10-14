@@ -18,6 +18,7 @@ window.studyBuiltInsReady = (() => {
   const KEY_STORE = 'course-app.key.v1';
   const MAX_CHARS = 16 * 1024 * 1024;
   const RELOAD_FLAG = 'course-app.reloaded-for-update';
+  const LOGOUT_REASON = 'course-app.logout-reason';
   const $ = (id) => document.getElementById(id);
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const base64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -25,6 +26,14 @@ window.studyBuiltInsReady = (() => {
   const fail = (message) => Object.assign(new Error(message), { shown: true });
   const b64 = (s) => typeof s === 'string' && s.length > 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(s);
   const dateLabel = (iso) => new Date(iso).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' });
+  // 削除・期限切れのときは、管理者（合言葉を渡した人）への問い合わせを案内する。
+  const ASK = '続けて使うときは、管理者に問い合わせてください。';
+  const MESSAGES = {
+    expired: `ゲストの期限が切れました。${ASK}`,
+    removed: `この合言葉は使えなくなりました（削除されました）。${ASK}`,
+    expiredEntered: `この合言葉は期限が切れています。${ASK}`,
+    wrong: '合言葉が違います。「表示」を押して、入力した文字を確かめてください。合言葉が削除された可能性があるときは、管理者に問い合わせてください。',
+  };
   const expired = (slot) => slot.kind === 'guest' && !(Date.parse(slot.expiresAt) > Date.now());
 
   /**
@@ -176,7 +185,7 @@ window.studyBuiltInsReady = (() => {
             found = { slot, slotKey, plain }; break;
           }
           if (!found) {
-            error.textContent = expiredMatch ? 'このゲスト用の合言葉は期限が切れています。' : '合言葉が違います。「表示」を押して、入力した文字を確かめてください。';
+            error.textContent = expiredMatch ? MESSAGES.expiredEntered : MESSAGES.wrong;
             error.hidden = false; input.select(); return;
           }
           const result = await checked(found.plain);
@@ -204,18 +213,20 @@ window.studyBuiltInsReady = (() => {
     try { sealed = await load(); }
     catch (error) { return stop(error.message); }
     let result = null, message = '';
+    // 開いている途中で期限が来てログアウトしたときは、開き直したあとに理由を出す。
+    try { if (window.sessionStorage.getItem(LOGOUT_REASON) === 'expired') message = MESSAGES.expired; window.sessionStorage.removeItem(LOGOUT_REASON); } catch (_) { /* 理由なしで入口を出す */ }
     const saved = remembered();
     if (saved) {
       const slot = sealed.slots.find((s) => s.salt === saved.salt);
       if (!slot || saved.iterations !== sealed.iterations) {
         forget();
         // 枠がない：ゲストは期限切れで外れたか、削除された。通常の合言葉は変更された。
-        message = saved.kind === 'guest' && Date.parse(saved.expiresAt) <= Date.now() ? 'ゲストの期限が切れました。'
-          : saved.kind === 'guest' || saved.kind === 'guest-unlimited' ? 'ゲストの登録が終了しました。'
+        message = saved.kind === 'guest' && Date.parse(saved.expiresAt) <= Date.now() ? MESSAGES.expired
+          : saved.kind === 'guest' || saved.kind === 'guest-unlimited' ? MESSAGES.removed
           : '合言葉が変わりました。新しい合言葉を入力してください。';
       } else if (expired(slot)) {
         forget();
-        message = 'ゲストの期限が切れました。';
+        message = MESSAGES.expired;
       } else {
         const plain = await openWith(bytes(saved.key), slot, sealed);
         if (plain === null) { forget(); message = '合言葉が変わりました。新しい合言葉を入力してください。'; }
@@ -239,7 +250,11 @@ window.studyBuiltInsReady = (() => {
     // ゲストが開いたまま期限を迎えたら、その時点でログアウトする。
     if (guestUntil) {
       const wait = Date.parse(guestUntil) - Date.now();
-      if (wait < 2147483647) setTimeout(() => { forget(); window.location.reload(); }, Math.max(0, wait));
+      if (wait < 2147483647) setTimeout(() => {
+        forget();
+        try { window.sessionStorage.setItem(LOGOUT_REASON, 'expired'); } catch (_) { /* 理由なしで入口を出す */ }
+        window.location.reload();
+      }, Math.max(0, wait));
     }
   })();
 })();
