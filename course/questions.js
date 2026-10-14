@@ -19,6 +19,8 @@ window.studyBuiltInsReady = (() => {
   const MAX_CHARS = 16 * 1024 * 1024;
   const RELOAD_FLAG = 'course-app.reloaded-for-update';
   const LOGOUT_REASON = 'course-app.logout-reason';
+  // ログイン記録の送り先（tools/build-course.cjs が ~/.lecture-study-app/course-log.json の url に置き換える。未設定なら送らない）。
+  const LOG_URL = "https://course-login-logger.course-login-logger.workers.dev";
   const $ = (id) => document.getElementById(id);
   const bytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   const base64 = (buffer) => btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -118,6 +120,22 @@ window.studyBuiltInsReady = (() => {
       return new TextDecoder().decode(await decrypt(dataKey, sealed.data.iv, sealed.data.ct));
     } catch (_) { return null; }
   }
+  /**
+   * 開けたことを記録用サーバーへ知らせる（どの枠か・入力か覚えた鍵か・アプリかまとめか）。合言葉そのものは送らない。
+   * 枠の鍵で作ったしるし（HMAC）を付け、管理者画面が偽の記録を見分けられるようにする。送れなくても学習は続けられる。
+   */
+  async function report(slot, slotKey, how) {
+    if (!/^https:\/\/[^/]+$/.test(LOG_URL)) return;
+    try {
+      const page = /\/summary\//.test(window.location.pathname) ? 'summary' : 'app';
+      const nonce = base64(crypto.getRandomValues(new Uint8Array(18))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const t = new Date().toISOString();
+      const key = await crypto.subtle.importKey('raw', slotKey, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+      const mac = base64(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`course-login:${slot.salt}:${slot.kind}:${how}:${page}:${t}:${nonce}`)));
+      await fetch(`${LOG_URL}/event`, { method: 'POST', mode: 'cors', credentials: 'omit', keepalive: true, referrerPolicy: 'no-referrer',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slot: slot.salt, kind: slot.kind, how, page, t, nonce, mac }) });
+    } catch (_) { /* 記録できなくても学習は続けられる */ }
+  }
   /** 復号した内容を、取り込みと同じ検査にかける。1件でも不正なら使わない。 */
   function questionsOf(plain) {
     let data;
@@ -197,7 +215,7 @@ window.studyBuiltInsReady = (() => {
           } else forget();
           input.value = '';
           gate.hidden = true;
-          resolve({ ...result, slot: found.slot });
+          resolve({ ...result, slot: found.slot, slotKey: found.slotKey, how: 'passphrase' });
         } catch (e) {
           error.textContent = e.shown ? e.message : '問題を開けませんでした。開き直してください。';
           error.hidden = false;
@@ -231,7 +249,7 @@ window.studyBuiltInsReady = (() => {
         const plain = await openWith(bytes(saved.key), slot, sealed);
         if (plain === null) { forget(); message = '合言葉が変わりました。新しい合言葉を入力してください。'; }
         else {
-          try { result = { ...(await checked(plain)), slot }; }
+          try { result = { ...(await checked(plain)), slot, slotKey: bytes(saved.key), how: 'remembered' }; }
           catch (error) { return stop(error.shown ? error.message : '問題を開けませんでした。開き直してください。'); }
         }
       }
@@ -240,6 +258,7 @@ window.studyBuiltInsReady = (() => {
     try { window.sessionStorage.removeItem(RELOAD_FLAG); } catch (_) { /* なくてもよい */ }
     QUESTIONS.push(...result.questions);
     $('course-gate').hidden = true;
+    report(result.slot.direct ? { ...result.slot, kind: 'member' } : result.slot, result.slotKey, result.how);
     const guestUntil = result.slot.kind === 'guest' ? result.slot.expiresAt : null;
     const guestLabel = guestUntil ? `ゲスト（${dateLabel(guestUntil)}まで）` : result.slot.kind === 'guest-unlimited' ? '無期限ゲスト' : '';
     window.studyCourseInfo = { updatedAt: result.updatedAt, guestUntil, guestLabel };
