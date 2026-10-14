@@ -2,109 +2,50 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://course-login-logger.course-login-logger.workers.dev; object-src 'none'; base-uri 'none'; form-action 'none'">
-<meta name="robots" content="noindex, nofollow">
-<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>問題のまとめ</title>
-<link rel="icon" href="../icons/app-icon.svg" type="image/svg+xml">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>学習アプリは新しいURLに移りました</title>
 <style>
-  :root { --bg: #f5f6fa; --surface: #fff; --fg: #1d1f2b; --muted: #636779; --border: #dfe1ea; --accent: #5253d9; --accent-soft: #ececfd; --correct: #1f8a5b; --correct-soft: #e5f5ed; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #14161f; --surface: #1d2030; --fg: #eceef6; --muted: #a2a6b8; --border: #30344a; --accent: #a7a8ff; --accent-soft: #2a2c4a; --correct: #6fd3a2; --correct-soft: #1c3329; }
-  }
+  :root { --bg: #f5f6fa; --surface: #fff; --fg: #1d1f2b; --muted: #636779; --border: #dfe1ea; --accent: #5253d9; --danger: #c0392b; --danger-soft: #fbe9e7; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #14161f; --surface: #1d2030; --fg: #eceef6; --muted: #a2a6b8; --border: #30344a; --accent: #a7a8ff; --danger: #ff8a7a; --danger-soft: #3b1f1c; } }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 15px; line-height: 1.75; }
-  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-  h2 { font-size: 1.15rem; margin: 2rem 0 .5rem; padding-bottom: .3rem; border-bottom: 2px solid var(--accent); }
-  h3 { font-size: 1rem; margin: 1.5rem 0 .5rem; color: var(--accent); }
-  .muted { color: var(--muted); font-size: .85rem; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height: 1.75; }
+  main { max-width: 560px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 1.35rem; margin: 0 0 .6rem; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.2rem; margin: 1rem 0; }
+  .muted { color: var(--muted); font-size: .88rem; }
+  .url { font-size: 1.05rem; font-weight: 600; word-break: break-all; }
+  button, a.button { display: block; width: 100%; text-align: center; font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--fg); border-radius: 10px; padding: .6rem 1rem; min-height: 48px; margin: .5rem 0 0; cursor: pointer; text-decoration: none; }
+  button.primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
+  .error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: .6rem .9rem; }
   a { color: var(--accent); }
-  button, input, select { font: inherit; color: inherit; }
-  button { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: .45rem .9rem; cursor: pointer; min-height: 40px; }
-  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-  input[type=search], input[type=password], input[type=text], select { border: 1px solid var(--border); background: var(--surface); border-radius: 10px; padding: .5rem .75rem; min-height: 40px; }
-  .toolbar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; padding: .75rem 0; background: var(--bg); border-bottom: 1px solid var(--border); }
-  .toolbar input[type=search] { flex: 1 1 200px; min-width: 0; }
-  .toolbar label { display: inline-flex; align-items: center; gap: .35rem; font-size: .9rem; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; margin: .7rem 0; }
-  .card .meta { color: var(--muted); font-size: .8rem; margin-bottom: .2rem; }
-  .card .text { font-weight: 600; margin: 0 0 .5rem; overflow-wrap: anywhere; }
-  .card ol { margin: 0; padding-left: 1.5rem; }
-  .card li { margin: .15rem 0; overflow-wrap: anywhere; }
-  .card img { max-width: 100%; height: auto; border-radius: 8px; margin: .3rem 0 .6rem; }
-  .answer-area { margin-top: .6rem; }
-  .answer { background: var(--correct-soft); color: var(--correct); border-radius: 8px; padding: .35rem .7rem; font-weight: 600; display: inline-block; }
-  .explanation { margin: .5rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .92rem; }
-  .is-correct { color: var(--correct); font-weight: 600; }
-  .hidden-answers .answer-area, .hidden-answers .is-correct-mark { display: none; }
-  .hidden-answers .is-correct { color: inherit; font-weight: inherit; }
-  .card.revealed .answer-area { display: block; }
-  .card.revealed .is-correct { color: var(--correct); font-weight: 600; }
-  .card.revealed .is-correct-mark { display: inline; }
-  .reveal { display: none; margin-top: .5rem; }
-  .hidden-answers .card:not(.revealed) .reveal { display: inline-block; }
-  .error { color: #c0392b; font-size: .9rem; }
-  .toc { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 0; padding: 0; list-style: none; }
-  .toc a { display: inline-block; padding: .2rem .7rem; border: 1px solid var(--border); border-radius: 999px; text-decoration: none; font-size: .85rem; background: var(--surface); }
   [hidden] { display: none !important; }
-  @media (max-width: 600px) { .toolbar { position: static; } }
-  @media print {
-    .toolbar, .course-gate, .reveal, .no-print { display: none !important; }
-    body { background: #fff; color: #000; }
-    .card { break-inside: avoid; border-color: #bbb; }
-    .hidden-answers .answer-area { display: none; }
-  }
 </style>
 </head>
 <body>
 <main>
-<div id="course-gate" class="course-gate" role="dialog" aria-modal="true" aria-labelledby="course-gate-title">
-  <div class="course-gate-box">
-    <p id="course-loading">問題を読み込んでいます…</p>
-    <div id="course-ask" hidden>
-    <h1 id="course-gate-title">合言葉を入力</h1>
-    <p>この学習アプリには講義の問題が入っています。受け取った合言葉を入力してください。</p>
-    </div>
-    <form id="course-form" autocomplete="off" hidden>
-      <label for="course-passphrase">合言葉</label>
-      <div class="course-row"><input id="course-passphrase" type="password" required autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="受け取った合言葉"><button id="course-show" type="button" aria-pressed="false" aria-controls="course-passphrase">表示</button></div>
-      <label class="course-remember"><input id="course-remember" type="checkbox" checked> この端末で覚える</label>
-      <button type="submit" class="primary">開く</button>
-    </form>
-    <p id="course-error" role="alert" class="course-error" hidden></p>
-    <noscript><p>このページを開くにはJavaScriptが必要です。</p></noscript>
-  </div>
-</div>
-<style>
-  .course-gate { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: var(--bg, #f5f6fa); overflow: auto; }
-  .course-gate[hidden] { display: none; }
-  .course-gate-box { width: 100%; max-width: 440px; }
-  .course-gate h1 { font-size: 1.3rem; margin: 0 0 .5rem; }
-  .course-gate label { display: block; font-size: .85rem; font-weight: 650; margin-top: .8rem; }
-  .course-row { display: flex; gap: .4rem; margin-top: .4rem; }
-  .course-row input { flex: 1; min-width: 0; font-size: 17px; padding: .65rem .8rem; }
-  .course-gate .course-remember { display: flex; align-items: center; gap: .45rem; font-weight: 400; }
-  .course-gate button[type=submit] { width: 100%; margin-top: 1rem; min-height: 48px; }
-  .course-error { color: #c0392b; font-size: .85rem; margin-top: .8rem; }
-</style>
+  <h1>学習アプリは新しいURLに移りました</h1>
+  <p>これからは、こちらを使ってください。</p>
+  <p class="url"><a id="new-url" href="https://lecture-study.pages.dev/">https://lecture-study.pages.dev/</a></p>
 
-  <div id="content" hidden>
-    <h1>問題のまとめ</h1>
-    <p class="muted"><span id="summary-count"></span> <span id="summary-updated"></span> ・ <a href="../">学習アプリを開く</a></p>
-    <div class="toolbar no-print" role="search">
-      <input id="search" type="search" placeholder="キーワードで絞り込む" aria-label="キーワードで絞り込む">
-      <select id="lecture-filter" aria-label="講義回で絞り込む"></select>
-      <label><input id="hide-answers" type="checkbox"> 答えを隠す</label>
-      <button id="print" type="button">印刷</button>
-    </div>
-    <p id="no-match" class="muted" hidden>当てはまる問題がありません。</p>
-    <div id="list"></div>
-  </div>
+  <section id="has-data" class="panel" hidden>
+    <p style="margin-top:0"><strong>この端末の学習記録を、新しいURLへ持っていけます。</strong></p>
+    <p id="summary" class="muted"></p>
+    <button id="move" type="button" class="primary">学習記録を持って新しいURLへ</button>
+    <button id="save" type="button">ファイルに保存（うまく移れないとき）</button>
+    <p class="muted">ファイルに保存したときは、新しいURLの <a href="https://lecture-study.pages.dev/move/">引き継ぎの画面</a> でそのファイルを選びます。
+      ホーム画面に追加して使っていた場合は、新しいURLもホーム画面に追加し直してください。</p>
+  </section>
+  <section id="no-data" class="panel" hidden>
+    <p style="margin:0">この端末には、前のURLの学習記録はありません。</p>
+  </section>
+  <p id="error" class="error" role="alert" hidden></p>
+  <a id="go" class="button" href="https://lecture-study.pages.dev/">記録を持たずに新しいURLを開く</a>
 </main>
-<script src="../question-packs.js"></script>
-<script src="../questions.js?v=course-a9bc791b0dc8"></script>
-<script src="summary.js"></script>
+<script src="../../vendor/fflate-0.8.2.js"></script>
+<script src="../../transfer.js"></script>
+<script src="../../farewell.js"></script>
 </body>
 </html>

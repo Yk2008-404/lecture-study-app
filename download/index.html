@@ -1,69 +1,14 @@
-<!doctype html>
-<html lang="ja" data-theme="light">
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#5253d9">
-  <meta name="description" content="学習アプリのWindows・Mac版をダウンロード。スマホ・ブラウザ版もこちらから。">
-  <title>ダウンロード — 学習アプリ</title>
-  <link rel="icon" href="../icons/app-icon.svg" type="image/svg+xml">
-  <script src="../theme.js"></script>
-  <link rel="stylesheet" href="downloads.css">
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=https://lecture-study.pages.dev/download/">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ダウンロードページは移りました</title>
 </head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="../"><img src="../icons/app-icon-192.png" width="34" height="34" alt=""><span>学習アプリ</span></a>
-    <div class="header-actions"><a href="../">ブラウザ版を開く<span aria-hidden="true"> ↗</span></a><select id="theme-select" aria-label="表示モード"><option value="system">自動</option><option value="light">ライト</option><option value="dark">ダーク</option></select></div>
-  </header>
-  <main>
-    <section class="intro" aria-labelledby="gate-title"><span class="version">ダウンロード</span><h1 id="gate-title">合言葉を入力</h1><p>PC版のダウンロードは、合言葉を受け取った方だけが利用できます。受け取った合言葉を入力してください。</p></section>
-    <style>
-      .gate{max-width:440px;margin-top:6px}.gate label{display:block;font-size:13px;font-weight:650}
-      .gate-row{display:flex;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;box-shadow:var(--shadow)}
-      .gate-row:focus-within{outline:3px solid var(--accent);outline-offset:2px}
-      .gate-row input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:17px;letter-spacing:.04em;padding:12px 14px;outline:none}
-      .gate-toggle{display:flex;align-items:center;gap:6px;border:0;border-left:1px solid var(--line);background:var(--soft);color:var(--accent);font:inherit;font-size:13px;font-weight:700;padding:0 15px;cursor:pointer;white-space:nowrap}
-      .gate-toggle svg{width:18px;height:18px}
-      .gate .download-button{width:100%;justify-content:center;border:0;cursor:pointer;font:inherit;font-size:15px;font-weight:650;margin-top:14px}
-      .gate-error{color:#c0392b;font-size:13px;margin-top:10px}
-    </style>
-    <form id="beta-gate" class="gate" autocomplete="off">
-      <label for="beta-passphrase">合言葉</label>
-      <div class="gate-row">
-        <input id="beta-passphrase" type="password" required autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="受け取った合言葉">
-        <button id="beta-show" class="gate-toggle" type="button" aria-pressed="false" aria-controls="beta-passphrase"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3"/></svg><span>表示</span></button>
-      </div>
-      <button class="download-button" type="submit">開く</button>
-      <p id="beta-error" role="alert" class="gate-error" hidden>合言葉が違います。「表示」を押して、入力した文字を確かめてください。</p>
-    </form>
-    <noscript><p>このページを開くにはJavaScriptが必要です。</p></noscript>
-  </main>
-  <script>
-  (function () {
-    var sealed = {"v":1,"iterations":250000,"salt":"Pkk7QTtVHIrjVEqx+w8u/g==","iv":"1OCynhaZQKwrIkRl","data":"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"};
-    var form = document.getElementById('beta-gate'), input = document.getElementById('beta-passphrase'), error = document.getElementById('beta-error');
-    // 入力中の合言葉を表示・非表示に切り替える（打ち間違いの確認用）。
-    var show = document.getElementById('beta-show');
-    show.addEventListener('click', function () {
-      var visible = input.type === 'password';
-      input.type = visible ? 'text' : 'password';
-      show.querySelector('span').textContent = visible ? '隠す' : '表示';
-      show.setAttribute('aria-pressed', String(visible));
-      input.focus();
-    });
-    var bytes = function (b64) { return Uint8Array.from(atob(b64), function (c) { return c.charCodeAt(0); }); };
-    form.addEventListener('submit', async function (event) {
-      event.preventDefault();
-      error.hidden = true;
-      try {
-        var material = await crypto.subtle.importKey('raw', new TextEncoder().encode(input.value.trim().normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
-        var key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: bytes(sealed.salt), iterations: sealed.iterations }, material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-        var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes(sealed.iv) }, key, bytes(sealed.data));
-        document.querySelector('main').innerHTML = new TextDecoder().decode(plain);
-      } catch (e) { error.hidden = false; input.select(); }
-    });
-  })();
-  </script>
-  <footer><span>学習アプリ 1.2.0</span></footer>
+<body style="font-family:-apple-system,sans-serif;max-width:560px;margin:40px auto;padding:0 16px">
+<h1 style="font-size:1.3rem">ダウンロードページは移りました</h1>
+<p><a href="https://lecture-study.pages.dev/download/">https://lecture-study.pages.dev/download/</a></p>
 </body>
 </html>
