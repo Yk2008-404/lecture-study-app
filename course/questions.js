@@ -3,7 +3,8 @@
  * 合言葉で questions.enc.json を復号し、検査してから組込問題（QUESTIONS）として app.js に渡す。
  *
  * 形式 v2：問題は公開のたびに作る鍵（データ鍵）で AES-256-GCM 暗号化し、データ鍵を合言葉ごとの「鍵の枠」に入れる。
- * 枠の鍵は合言葉から PBKDF2-SHA256 で作る。枠は通常（member）とゲスト（guest、期限つき）。
+ * 枠の鍵は合言葉から PBKDF2-SHA256 で作る。枠は通常（member）、ゲスト（guest、期限つき）、無期限ゲスト（guest-unlimited）。
+ * ゲストの枠は、削除（取り消し）すると次の公開から外れ、覚えていた端末も次に開いたときにログアウトする。
  * ゲストは期限を過ぎるとこの端末でログアウトし、期限切れの枠は次の公開で取り除かれる（同じ合言葉では開けなくなる）。
  * 合言葉を知らない人に中身を見せないためのもので、合言葉を知っている人どうしの間の秘密は守れない。
  */
@@ -60,7 +61,7 @@ window.studyBuiltInsReady = (() => {
     if (object(sealed) && sealed.v === 1 && iterations(sealed.iterations) && b64(sealed.salt) && b64(sealed.iv) && b64(sealed.data)) {
       return { iterations: sealed.iterations, data: { iv: sealed.iv, ct: sealed.data }, slots: [{ kind: 'member', salt: sealed.salt, direct: true }] };
     }
-    const slotOk = (s) => object(s) && (s.kind === 'member' || (s.kind === 'guest' && typeof s.expiresAt === 'string' && !Number.isNaN(Date.parse(s.expiresAt))))
+    const slotOk = (s) => object(s) && (s.kind === 'member' || s.kind === 'guest-unlimited' || (s.kind === 'guest' && typeof s.expiresAt === 'string' && !Number.isNaN(Date.parse(s.expiresAt))))
       && b64(s.salt) && b64(s.iv) && b64(s.key);
     if (!object(sealed) || sealed.v !== 2 || !iterations(sealed.iterations) || !object(sealed.data) || !b64(sealed.data.iv) || !b64(sealed.data.ct)
       || !Array.isArray(sealed.slots) || !sealed.slots.length || sealed.slots.length > 200 || !sealed.slots.every(slotOk)) throw new Error('format');
@@ -208,7 +209,10 @@ window.studyBuiltInsReady = (() => {
       const slot = sealed.slots.find((s) => s.salt === saved.salt);
       if (!slot || saved.iterations !== sealed.iterations) {
         forget();
-        message = saved.kind === 'guest' ? 'ゲストの期限が切れました。' : '合言葉が変わりました。新しい合言葉を入力してください。';
+        // 枠がない：ゲストは期限切れで外れたか、削除された。通常の合言葉は変更された。
+        message = saved.kind === 'guest' && Date.parse(saved.expiresAt) <= Date.now() ? 'ゲストの期限が切れました。'
+          : saved.kind === 'guest' || saved.kind === 'guest-unlimited' ? 'ゲストの登録が終了しました。'
+          : '合言葉が変わりました。新しい合言葉を入力してください。';
       } else if (expired(slot)) {
         forget();
         message = 'ゲストの期限が切れました。';
@@ -226,9 +230,10 @@ window.studyBuiltInsReady = (() => {
     QUESTIONS.push(...result.questions);
     $('course-gate').hidden = true;
     const guestUntil = result.slot.kind === 'guest' ? result.slot.expiresAt : null;
-    window.studyCourseInfo = { updatedAt: result.updatedAt, guestUntil };
+    const guestLabel = guestUntil ? `ゲスト（${dateLabel(guestUntil)}まで）` : result.slot.kind === 'guest-unlimited' ? '無期限ゲスト' : '';
+    window.studyCourseInfo = { updatedAt: result.updatedAt, guestUntil, guestLabel };
     const updated = $('course-updated');
-    if (updated) updated.textContent = (result.updatedAt ? `問題の更新：${result.updatedAt}` : '') + (guestUntil ? `　ゲスト（${dateLabel(guestUntil)}まで）` : '');
+    if (updated) updated.textContent = (result.updatedAt ? `問題の更新：${result.updatedAt}` : '') + (guestLabel ? `　${guestLabel}` : '');
     const forgetButton = $('course-forget');
     if (forgetButton) forgetButton.onclick = () => { forget(); window.location.reload(); };
     // ゲストが開いたまま期限を迎えたら、その時点でログアウトする。

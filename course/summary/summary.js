@@ -107,7 +107,7 @@
   // 合言葉の入力・復号・検査は学習アプリと同じ入口（../questions.js）が行う。
   window.studyBuiltInsReady.then(() => {
     const info = window.studyCourseInfo || {};
-    const guest = info.guestUntil ? ` ゲスト（${new Date(info.guestUntil).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' })}まで）` : '';
+    const guest = info.guestLabel ? ` ${info.guestLabel}` : '';
     render({ questions: QUESTIONS, updatedAt: info.updatedAt || '' });
     if (guest) $('summary-updated').textContent += guest;
   });
